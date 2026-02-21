@@ -1,0 +1,37 @@
+{
+  "brand": {
+    "name": "Qualia Holding",
+    "wordmarkPrimary": "Qualia",
+    "wordmarkSecondary": "Holding",
+    "version": "v1.5.0"
+  },
+  "logo": {
+    "type": "svg-inline",
+    "svg": "<polygon points='16,2 28,9 28,23 16,30 4,23 4,9' fill='none' stroke='{{accent}}' stroke-width='2'/><polygon points='16,7 23,11 23,21 16,25 9,21 9,11' fill='{{accentDim}}' stroke='{{accent}}' stroke-width='1'/>"
+  },
+  "colors": {
+    "bgDeep": "#050508",
+    "bgBase": "#0a0b0f",
+    "bgCard": "#111318",
+    "bgCardHover": "#161820",
+    "bgElevated": "#1a1c24",
+    "border": "rgba(255,255,255,0.06)",
+    "borderHover": "rgba(255,255,255,0.12)",
+    "textPrimary": "#f0f0f2",
+    "textSecondary": "#8a8d9b",
+    "textTertiary": "#555868",
+    "accent": "#c9a94e",
+    "accentDim": "rgba(201,169,78,0.15)",
+    "accentGlow": "rgba(201,169,78,0.08)",
+    "green": "#34d399",
+    "red": "#f87171",
+    "cyan": "#06d6d6"
+  },
+  "fonts": {
+    "heading": "'Outfit', sans-serif",
+    "body": "'Figtree', sans-serif",
+    "mono": "'JetBrains Mono', 'SF Mono', monospace",
+    "googleImport": "https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Figtree:wght@300;400;500;600;700&display=swap"
+  },
+  "backgroundGradient": "radial-gradient(ellipse 80% 50% at 50% -20%, rgba(201,169,78,0.03), transparent)"
+}

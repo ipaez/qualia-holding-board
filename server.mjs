@@ -6,6 +6,8 @@ import crypto from 'node:crypto';
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const DATA_FILE = join(__dirname, 'board-data.json');
 const WEB_DIR = join(__dirname, 'web');
+const BRANDING_DIR = join(__dirname, 'branding');
+const BRANDING_FILE = join(BRANDING_DIR, 'theme.json');
 
 const MIME = {
   '.html': 'text/html', '.css': 'text/css', '.js': 'application/javascript',
@@ -204,6 +206,15 @@ export default async function handler(req, res) {
       data.projects.splice(idx, 1);
       saveData(data);
       return json(res, 200, data.projects);
+    }
+
+    // GET /api/branding
+    if (path === '/api/branding') {
+      if (existsSync(BRANDING_FILE)) {
+        try { return json(res, 200, JSON.parse(readFileSync(BRANDING_FILE, 'utf8'))); }
+        catch(e) { return json(res, 500, { error: 'Invalid theme.json' }); }
+      }
+      return json(res, 200, null);
     }
 
     // GET /api/agents
@@ -575,6 +586,13 @@ export default async function handler(req, res) {
   }
   if (path === '/brainstorm' || path.startsWith('/brainstorm/')) {
     return serveStatic(res, join(WEB_DIR, 'brainstorm.html'));
+  }
+
+  // Serve branding assets (logos, images)
+  if (path.startsWith('/branding/')) {
+    const brandPath = join(BRANDING_DIR, path.slice(10));
+    const served = serveStatic(res, brandPath);
+    if (served) return;
   }
 
   const served = serveStatic(res, join(WEB_DIR, path));

@@ -1,6 +1,90 @@
 // Shared utilities for Qualia Holding Board v2
 const API = 'api';
 
+// --- Branding / Theming ---
+let _brandingTheme = null;
+
+async function loadBranding() {
+  try {
+    const r = await fetch(`${API}/branding`);
+    const theme = await r.json();
+    if (!theme) return;
+    _brandingTheme = theme;
+    applyBranding(theme);
+  } catch(e) { /* no branding, use defaults */ }
+}
+
+function applyBranding(t) {
+  const root = document.documentElement.style;
+  if (t.colors) {
+    const map = {
+      bgDeep: '--bg-deep', bgBase: '--bg-base', bgCard: '--bg-card',
+      bgCardHover: '--bg-card-hover', bgElevated: '--bg-elevated',
+      border: '--border', borderHover: '--border-hover',
+      textPrimary: '--text-primary', textSecondary: '--text-secondary',
+      textTertiary: '--text-tertiary', accent: '--gold',
+      accentDim: '--gold-dim', accentGlow: '--gold-glow',
+      green: '--green', red: '--red', cyan: '--cyan',
+    };
+    for (const [k, v] of Object.entries(map)) {
+      if (t.colors[k]) root.setProperty(v, t.colors[k]);
+    }
+  }
+  if (t.fonts) {
+    if (t.fonts.heading) root.setProperty('--font-heading', t.fonts.heading);
+    if (t.fonts.body) root.setProperty('--font-body', t.fonts.body);
+    if (t.fonts.mono) root.setProperty('--font-mono', t.fonts.mono);
+    if (t.fonts.googleImport) {
+      const existing = document.querySelector('link[data-branding-font]');
+      if (!existing) {
+        const link = document.createElement('link');
+        link.rel = 'stylesheet'; link.href = t.fonts.googleImport;
+        link.setAttribute('data-branding-font', '1');
+        document.head.appendChild(link);
+      }
+    }
+  }
+  if (t.backgroundGradient) {
+    document.body.style.backgroundImage = t.backgroundGradient;
+  }
+  // Update sidebar wordmark
+  if (t.brand) {
+    const wm = document.querySelector('.wordmark');
+    if (wm) {
+      const q = wm.querySelector('.brand-q');
+      const b = wm.querySelector('.brand-b');
+      if (q && t.brand.wordmarkPrimary) q.textContent = t.brand.wordmarkPrimary;
+      if (b && t.brand.wordmarkSecondary) b.textContent = t.brand.wordmarkSecondary;
+    }
+    if (t.brand.version) {
+      const sv = document.querySelector('.sidebar-version');
+      if (sv) sv.textContent = t.brand.version;
+    }
+  }
+  // Update logo
+  if (t.logo) {
+    const logoSvg = document.querySelector('.logo-svg');
+    if (logoSvg && t.logo.type === 'svg-inline' && t.logo.svg) {
+      let svg = t.logo.svg;
+      svg = svg.replace(/\{\{accent\}\}/g, t.colors?.accent || '#c9a94e');
+      svg = svg.replace(/\{\{accentDim\}\}/g, t.colors?.accentDim || 'rgba(201,169,78,0.15)');
+      logoSvg.innerHTML = svg;
+    } else if (t.logo.type === 'image' && t.logo.src) {
+      const logoSvg = document.querySelector('.logo-svg');
+      if (logoSvg) {
+        const img = document.createElement('img');
+        img.src = t.logo.src; img.width = 32; img.height = 32;
+        img.style.borderRadius = '6px';
+        logoSvg.replaceWith(img);
+      }
+    }
+  }
+  // Page title
+  if (t.brand?.name) {
+    document.title = document.title.replace(/Qualia Holding Board/, t.brand.name);
+  }
+}
+
 const PROJECT_COLORS = {
   'Prisma Pipeline': '#3498db',
   'Prisma Engine': '#9b59b6',
@@ -212,6 +296,7 @@ function initSidebar() {
   if (!sidebar) return;
   const stored = localStorage.getItem('qb_sidebar');
   if (stored === 'collapsed') sidebar.classList.add('collapsed');
+  loadBranding();
 }
 
 function toggleSidebar() {
