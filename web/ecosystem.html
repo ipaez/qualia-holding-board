@@ -490,9 +490,20 @@ window.addEventListener('hashchange', async () => {
       newPath.push({ id: pid, name: b?.name || pid, focusNodeId: fid });
     }
 
-    // The focusNodeId to center on is from the last parent (what pointed to targetId)
-    const lastParent = newPath[newPath.length - 1];
-    focusNodeId = lastParent?.focusNodeId || null;
+    // Determine if we're going back (shorter path) or forward (longer path)
+    const goingBack = newPath.length < navPath.length;
+    
+    // focusNodeId only when going back - center on the node that originated the drill-down
+    if (goingBack) {
+      // The node to focus is in the TARGET board - it's the one whose boardId pointed deeper
+      // We need to find which node in targetId board has boardId matching the old next level
+      const oldNextId = navPath[newPath.length]?.id; // the board we're leaving
+      if (oldNextId) {
+        const full = await fetch(`${ECO_BAPI}/boards/${targetId}`).then(r => r.json());
+        const originNode = (full.nodes || []).find(n => n.boardId === oldNextId);
+        if (originNode) focusNodeId = originNode.id;
+      }
+    }
 
     navPath = newPath;
     await selectBoard(targetId, focusNodeId);
