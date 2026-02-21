@@ -94,8 +94,61 @@ curl -X POST http://127.0.0.1:18795/qualia-board/api/tasks \
   -d '{"title":"Primera tarea","project":"Mi Proyecto","status":"todo","priority":"medium"}'
 ```
 
+## Branding
+
+Cada instancia tiene su propia identidad visual en `branding/theme.json` (gitignored).
+
+### Instalación de branding
+```bash
+cp -r branding.template/ branding/
+# Editar branding/theme.json con los colores/fuentes/logo del cliente
+```
+
+### API
+- `GET /api/branding` — Devuelve el theme.json actual (null si no existe)
+
+### Estructura de theme.json
+```json
+{
+  "brand": {
+    "name": "Nombre del Board",
+    "wordmarkPrimary": "Palabra1",
+    "wordmarkSecondary": "Palabra2",
+    "version": "v1.0.0"
+  },
+  "logo": {
+    "type": "svg-inline",
+    "svg": "<polygon .../>"
+  },
+  "colors": {
+    "bgDeep": "#050508",
+    "bgBase": "#0a0b0f",
+    "bgCard": "#111318",
+    "accent": "#c9a94e",
+    "accentDim": "rgba(201,169,78,0.15)",
+    "...": "..."
+  },
+  "fonts": {
+    "heading": "'Outfit', sans-serif",
+    "body": "'Figtree', sans-serif",
+    "mono": "'JetBrains Mono', monospace",
+    "googleImport": "https://fonts.googleapis.com/css2?family=..."
+  },
+  "backgroundGradient": "radial-gradient(...)"
+}
+```
+
+Logo soporta `"type": "image"` con `"src": "branding/logo.png"` (archivos en branding/ se sirven como estáticos).
+
+### Al configurar branding para un cliente:
+1. Preguntar colores principales (accent, fondo, texto)
+2. Preguntar nombre del board/empresa
+3. Logo: SVG inline o imagen en branding/
+4. Fuentes: Google Fonts URL + nombres
+5. Escribir theme.json y reiniciar
+
 ## Notas
 - El frontend es vanilla JS, sin frameworks
-- Dark theme con accent gold (#c9a94e)
 - Canvas del ecosistema soporta drag, zoom, pan
 - Nodos con boardId generan drill-down (click para entrar al sub-board)
+- `branding/` y `board-data.json` son propietarios de cada instancia (gitignored)
