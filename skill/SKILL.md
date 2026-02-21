@@ -33,7 +33,7 @@ Boards recursivos con nodos y conexiones en canvas visual.
 - `DELETE /api/ecosystem/boards/:bid` — Eliminar board
 
 #### Nodos (dentro de un board)
-- `POST /api/ecosystem/boards/:bid/nodes` — Crear nodo. Body: `{name, x, y, w, h, color, desc, stage, agent, projectName, boardId}`
+- `POST /api/ecosystem/boards/:bid/nodes` — Crear nodo. Body: `{name, x, y, w, h, color, desc, stage, agent, projectName}`
 - `PUT /api/ecosystem/boards/:bid/nodes/:nid` — Editar nodo
 - `DELETE /api/ecosystem/boards/:bid/nodes/:nid` — Eliminar nodo
 
@@ -41,15 +41,18 @@ Campos del nodo:
 - `name` (string) — nombre visible
 - `x, y` (number) — posición en canvas
 - `w, h` (number) — tamaño (default 260x160)
-- `color` (hex string) — color de fondo
-- `desc` (string) — descripción
-- `stage` (string) — etapa: idea, mvp, activo, escalando, maduro
-- `revenue` (string) — info de revenue
-- `agent` (string) — agente asignado
-- `projectName` (string) — proyecto asociado (del listado de projects)
-- `boardId` (string) — si tiene sub-board, el id del board hijo (drill-down)
-- `objective, notes` (string) — texto libre
-- `metrics` (array) — [{label, value}]
+- `color` (hex string) — color del nodo. Colores disponibles: `#c9a94e` (gold), `#3498db` (azul), `#2ecc71` (verde), `#e74c3c` (rojo), `#9b59b6` (morado), `#e67e22` (naranja), `#1abc9c` (teal), `#e056a0` (rosa), `#f39c12` (amarillo), `#06d6d6` (cyan)
+- `description` (string) — descripción corta
+- `stage` (string) — etapa: `idea`, `desarrollo`, `mvp`, `activo`, `escalando`, `escritura`, `pausado`
+- `revenue` (string) — info de revenue (ej: "Pre-revenue", "$2k/mo")
+- `agent` (string) — agente asignado (ej: "QualIA", "InfraQual-IA")
+- `projectName` (string) — proyecto asociado (del listado de projects, enlaza tareas)
+- `objective` (string) — objetivo del nodo
+- `notes` (string) — notas libres
+- `metrics` (array) — [{label, value}] max 3 visibles en card
+- `refs` (array) — [{boardId, cardId}] sub-nodos referenciados de cualquier board
+
+**NO existe boardId en nodos.** No hay accesos directos. Todos los nodos son editables y se navegan via refs (sub-nodos). Click en un nodo siempre abre el panel de edición. Click en un sub-nodo (ref) navega al board destino y centra en ese nodo.
 
 #### Conexiones
 - `POST /api/ecosystem/boards/:bid/connections` — Body: `{from, to, label}`
@@ -63,9 +66,15 @@ Misma estructura que ecosystem pero para ideas.
 - `POST /api/brainstorm/boards` — Crear board
 - Nodos y conexiones: mismos endpoints bajo `/api/brainstorm/boards/:bid/...`
 
-Campos adicionales de cards de brainstorm:
-- `principal` (boolean) — card principal del board
-- `refs` (array) — [{boardId, cardId}] referencias cruzadas
+Campos de cards de brainstorm:
+- `title` (string) — titulo de la idea
+- `summary` (string) — resumen corto
+- `detail` (string) — detalle completo
+- `source` (string) — origen/fuente (ej: "Audio 1", "reunion")
+- `color` (hex string) — mismos colores que ecosystem
+- `tags` (array de strings) — etiquetas
+- `refs` (array) — [{boardId, cardId}] sub-ideas referenciadas de cualquier board
+- `x, y` (number) — posición en canvas
 
 ## Data
 - Fuente de verdad: `board-data.json` en la raíz del proyecto
@@ -86,7 +95,12 @@ curl -X POST http://127.0.0.1:18795/qualia-board/api/projects \
 # Crear nodo en ecosistema
 curl -X POST http://127.0.0.1:18795/qualia-board/api/ecosystem/boards/root/nodes \
   -H 'Content-Type: application/json' \
-  -d '{"name":"Mi Proyecto","x":60,"y":60,"w":260,"h":160,"color":"#1a3a4a","projectName":"Mi Proyecto"}'
+  -d '{"name":"Mi Proyecto","x":60,"y":60,"color":"#1abc9c","description":"Descripción corta","stage":"idea","projectName":"Mi Proyecto"}'
+
+# Agregar sub-nodo (ref) a un nodo existente
+curl -X PUT http://127.0.0.1:18795/qualia-board/api/ecosystem/boards/root/nodes/NODE_ID \
+  -H 'Content-Type: application/json' \
+  -d '{"refs":[{"boardId":"BOARD_ID","cardId":"CARD_ID"}]}'
 
 # Crear tarea
 curl -X POST http://127.0.0.1:18795/qualia-board/api/tasks \
@@ -150,5 +164,6 @@ Logo soporta `"type": "image"` con `"src": "branding/logo.png"` (archivos en bra
 ## Notas
 - El frontend es vanilla JS, sin frameworks
 - Canvas del ecosistema soporta drag, zoom, pan
-- Nodos con boardId generan drill-down (click para entrar al sub-board)
+- Navegación entre boards es via refs (sub-nodos) y breadcrumb con centrado animado
+- NO usar boardId en nodos — fue deprecado. Usar refs para enlazar nodos entre boards
 - `branding/` y `board-data.json` son propietarios de cada instancia (gitignored)

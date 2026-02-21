@@ -1075,7 +1075,6 @@ function bindEvents() {
       saveCardPos(dragCard);
       if (!didDrag) {
         // If node has a sub-board, drill into it
-        if (dragCard.boardId) { drillIntoBoard(dragCard.boardId, dragCard.id, null); dragCard = null; return; }
         openPanel(dragCard);
       }
       dragCard = null;
