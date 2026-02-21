@@ -423,11 +423,13 @@ function drillIntoBoard(id, focusNodeId) {
 
 async function navigateBreadcrumb(index) {
   const target = boardStack[index];
+  const focusId = target.focusNodeId;
   boardStack = boardStack.slice(0, index);
   history.pushState({ boardId: target.id, stack: JSON.parse(JSON.stringify(boardStack)) }, '');
+  if (focusId) _skipCenterView = true;
   await selectBoard(target.id);
-  if (target.focusNodeId) {
-    const node = currentBoard.cards.find(c => c.id === target.focusNodeId);
+  if (focusId) {
+    const node = currentBoard.cards.find(c => c.id === focusId);
     if (node) centerOnCard(node);
   }
 }
@@ -435,11 +437,13 @@ async function navigateBreadcrumb(index) {
 window.addEventListener('popstate', async (e) => {
   if (e.state && e.state.boardId) {
     boardStack = e.state.stack || [];
+    // Find focus node from the stack entry we're returning to
+    const popped = boardStack[boardStack.length - 1];
+    const focusId = popped?.focusNodeId;
+    if (focusId) _skipCenterView = true;
     await selectBoard(e.state.boardId);
-    // Focus on the node that was drilled into
-    const last = boardStack[boardStack.length - 1];
-    if (last && last.focusNodeId) {
-      const node = currentBoard.cards.find(c => c.id === last.focusNodeId);
+    if (focusId) {
+      const node = currentBoard.cards.find(c => c.id === focusId);
       if (node) centerOnCard(node);
     }
   }
@@ -462,6 +466,8 @@ function renderBreadcrumb() {
   el.innerHTML = html;
 }
 
+let _skipCenterView = false;
+
 async function selectBoard(id) {
   currentBoard = await fetch(`${ECO_BAPI}/boards/${id}`).then(r => r.json());
   // Map nodes→cards for compatibility with brainstorm canvas engine
@@ -469,7 +475,8 @@ async function selectBoard(id) {
   if (!currentBoard.connections) currentBoard.connections = [];
   initParticles();
   await resolveAllRefs();
-  centerView();
+  if (_skipCenterView) _skipCenterView = false;
+  else centerView();
   renderBoardTabs();
   document.getElementById('boardName').value = currentBoard.name;
   document.getElementById('emptyState').style.display = currentBoard.cards.length === 0 ? 'block' : 'none';
