@@ -1,0 +1,831 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Qualia Holding Board — Ecosistema</title>
+<script src="shared.js"></script>
+<style id="shared-css"></style>
+<style>
+html, body { height: 100%; overflow: hidden; }
+.eco-wrap { display: flex; flex-direction: column; height: 100vh; }
+
+.eco-toolbar {
+  display: flex; align-items: center; gap: 8px; padding: 10px 22px;
+  border-bottom: 1px solid var(--border); background: var(--bg-card); flex-shrink: 0;
+}
+.eco-toolbar button {
+  background: transparent; color: var(--text-secondary); border: 1px solid var(--border);
+  padding: 7px 16px; border-radius: var(--radius-sm); cursor: pointer;
+  font-family: var(--font-body); font-size: 0.8rem; font-weight: 500; transition: all .2s;
+  display: flex; align-items: center; gap: 6px;
+}
+.eco-toolbar button svg { width: 14px; height: 14px; }
+.eco-toolbar button:hover { background: var(--gold-glow); color: var(--gold); border-color: rgba(201,169,78,0.3); }
+.eco-toolbar button.active { background: var(--gold-dim); color: var(--gold); border-color: rgba(201,169,78,0.3); }
+.eco-toolbar .spacer { flex:1; }
+.eco-toolbar .zoom-label { font-size: 0.72rem; color: var(--text-tertiary); font-family: var(--font-mono); min-width: 42px; text-align: right; }
+.eco-toolbar .sep { width: 1px; height: 20px; background: var(--border); margin: 0 4px; }
+.eco-legend { display: flex; gap: 14px; align-items: center; }
+.eco-legend-item { display: flex; align-items: center; gap: 5px; font-size: 0.68rem; color: var(--text-tertiary); font-family: var(--font-body); }
+.eco-legend-dot { width: 8px; height: 8px; border-radius: 50%; }
+
+.canvas-wrap { flex: 1; position: relative; overflow: hidden; }
+canvas#ecoCanvas { display: block; width: 100%; height: 100%; cursor: grab; }
+canvas#ecoCanvas.dragging { cursor: grabbing; }
+canvas#ecoCanvas.connecting { cursor: crosshair; }
+
+/* Side Panel */
+.side-panel {
+  position: absolute; top: 0; right: 0; width: 380px; height: 100%;
+  background: var(--bg-card); border-left: 1px solid var(--border);
+  transform: translateX(100%); transition: transform .3s cubic-bezier(0.4,0,0.2,1); z-index: 10;
+  display: flex; flex-direction: column; overflow-y: auto;
+  box-shadow: -20px 0 60px rgba(0,0,0,0.4);
+}
+.side-panel.open { transform: translateX(0); }
+.side-panel .sp-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 20px 24px; border-bottom: 1px solid var(--border); flex-shrink: 0;
+}
+.side-panel .sp-header h3 { font-family: var(--font-heading); font-size: 1rem; font-weight: 700; color: var(--gold); }
+.side-panel .sp-close {
+  background: none; border: 1px solid var(--border); color: var(--text-tertiary);
+  width: 30px; height: 30px; border-radius: 8px; cursor: pointer;
+  display: flex; align-items: center; justify-content: center; transition: all .2s;
+}
+.side-panel .sp-close:hover { color: var(--text-primary); border-color: var(--border-hover); background: var(--bg-elevated); }
+.sp-body { padding: 20px 24px; flex: 1; }
+.sp-body label {
+  display: block; font-family: var(--font-heading); font-size: 0.62rem; font-weight: 700;
+  color: var(--text-tertiary); margin: 18px 0 6px; text-transform: uppercase; letter-spacing: 2.5px;
+}
+.sp-body label:first-child { margin-top: 0; }
+.sp-body input, .sp-body textarea, .sp-body select {
+  width: 100%; background: var(--bg-base); color: var(--text-primary);
+  border: 1px solid var(--border); padding: 10px 14px;
+  border-radius: var(--radius-sm); font-family: var(--font-body); font-size: 0.85rem;
+  transition: border-color .2s;
+}
+.sp-body select { cursor: pointer; }
+.sp-body textarea { min-height: 60px; resize: vertical; }
+.sp-body input:focus, .sp-body textarea:focus, .sp-body select:focus { outline: none; border-color: var(--gold); box-shadow: 0 0 0 3px var(--gold-glow); }
+.sp-body .color-row { display: flex; align-items: center; gap: 10px; }
+.sp-body .color-row input[type=color] { width: 40px; height: 32px; padding: 2px; border-radius: 8px; cursor: pointer; border: 1px solid var(--border); background: var(--bg-base); }
+.sp-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.sp-tags-input { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 4px; }
+.sp-tag-chip {
+  display: inline-flex; align-items: center; gap: 4px;
+  background: var(--gold-dim); color: var(--gold); font-size: 0.72rem; font-family: var(--font-body);
+  padding: 3px 10px; border-radius: 20px; font-weight: 600;
+}
+.sp-tag-chip button { background: none; border: none; color: var(--gold); cursor: pointer; font-size: 14px; padding: 0; line-height: 1; opacity: 0.6; }
+.sp-tag-chip button:hover { opacity: 1; }
+.sp-metrics-list { display: flex; flex-direction: column; gap: 6px; margin-top: 4px; }
+.sp-metric-row { display: grid; grid-template-columns: 1fr 1fr 28px; gap: 6px; align-items: center; }
+.sp-metric-row input { padding: 7px 10px; font-size: 0.8rem; }
+.sp-metric-row button { background: none; border: none; color: var(--red); cursor: pointer; font-size: 16px; padding: 0; opacity: 0.5; }
+.sp-metric-row button:hover { opacity: 1; }
+.sp-add-btn {
+  background: var(--bg-elevated); border: 1px dashed var(--border); color: var(--text-tertiary);
+  padding: 6px 12px; border-radius: var(--radius-sm); cursor: pointer;
+  font-family: var(--font-body); font-size: 0.75rem; transition: all .2s; margin-top: 6px;
+}
+.sp-add-btn:hover { border-color: var(--gold); color: var(--gold); }
+.sp-conn-list { margin-top: 8px; }
+.sp-conn-item {
+  font-family: var(--font-body); font-size: 0.8rem; color: var(--text-secondary);
+  padding: 8px 10px; display: flex; align-items: center; gap: 8px;
+  border-radius: 8px; transition: background .15s; margin: 2px 0;
+}
+.sp-conn-item:hover { background: var(--bg-elevated); }
+.sp-conn-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+.sp-task-count { font-family: var(--font-heading); font-size: 1.1rem; color: var(--gold); font-weight: 700; }
+.sp-footer { padding: 16px 24px; border-top: 1px solid var(--border); display: flex; gap: 8px; flex-shrink: 0; }
+.sp-footer button {
+  flex: 1; padding: 10px; border: none; border-radius: var(--radius-sm);
+  cursor: pointer; font-family: var(--font-body); font-weight: 600; font-size: 0.82rem; transition: all .2s;
+}
+.sp-footer .btn-del { background: rgba(248,113,113,.08); color: var(--red); border: 1px solid rgba(248,113,113,.15); }
+.sp-footer .btn-del:hover { background: rgba(248,113,113,.15); }
+.sp-saved { font-size: 0.7rem; color: var(--green); opacity: 0; transition: opacity .3s; margin-left: 8px; font-family: var(--font-body); }
+.sp-saved.show { opacity: 1; }
+
+@media (max-width: 700px) {
+  .side-panel { width: 100%; border-left: none; border-top: 1px solid var(--border); top: auto; bottom: 0; height: 65%; transform: translateY(100%); }
+  .side-panel.open { transform: translateY(0); }
+  .eco-legend { display: none; }
+}
+</style>
+</head>
+<body>
+<script>document.getElementById('shared-css').textContent = getSharedCSS();</script>
+<script>document.write(getNavHTML('ecosystem'));</script>
+<div class="qb-main" style="height:100vh">
+
+<div class="eco-wrap">
+  <div class="eco-toolbar">
+    <button id="btnNewNode"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg> Proyecto</button>
+    <button id="btnNewConn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A2 2 0 1 0 18 4a2 2 0 0 0 0 4zM6 20a2 2 0 1 0 0-4 2 2 0 0 0 0 4z"/><path d="M18 8c-3 0-6 4-12 8"/></svg> Conexion</button>
+    <div class="sep"></div>
+    <div class="eco-legend">
+      <div class="eco-legend-item"><div class="eco-legend-dot" style="background:#2ecc71"></div>Clientes</div>
+      <div class="eco-legend-item"><div class="eco-legend-dot" style="background:#3498db"></div>Dependencia</div>
+      <div class="eco-legend-item"><div class="eco-legend-dot" style="background:#c9a94e"></div>Contenido</div>
+      <div class="eco-legend-item"><div class="eco-legend-dot" style="background:#e67e22"></div>Revenue</div>
+      <div class="eco-legend-item"><div class="eco-legend-dot" style="background:#9b59b6"></div>Estrategico</div>
+    </div>
+    <div class="spacer"></div>
+    <span class="zoom-label" id="zoomLabel">100%</span>
+    <button id="btnReset" title="Centrar vista"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M3 12h3m12 0h3M12 3v3m0 12v3"/></svg></button>
+  </div>
+  <div class="canvas-wrap">
+    <canvas id="ecoCanvas"></canvas>
+    <div class="side-panel" id="sidePanel">
+      <div class="sp-header">
+        <h3 id="spTitle">Proyecto</h3>
+        <span class="sp-saved" id="spSaved">Guardado</span>
+        <button class="sp-close" id="spClose"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+      </div>
+      <div class="sp-body">
+        <label>Nombre</label>
+        <input type="text" id="spName">
+        <label>Descripcion</label>
+        <textarea id="spDesc"></textarea>
+        <div class="sp-row">
+          <div>
+            <label>Stage</label>
+            <select id="spStage">
+              <option value="idea">Idea</option>
+              <option value="desarrollo">Desarrollo</option>
+              <option value="mvp">MVP</option>
+              <option value="activo">Activo</option>
+              <option value="escalando">Escalando</option>
+              <option value="escritura">Escritura</option>
+              <option value="pausado">Pausado</option>
+            </select>
+          </div>
+          <div>
+            <label>Revenue</label>
+            <input type="text" id="spRevenue" placeholder="Pre-revenue, $2k/mo...">
+          </div>
+        </div>
+        <div class="sp-row">
+          <div>
+            <label>Agente</label>
+            <input type="text" id="spAgent" placeholder="QualIA, InfraQual-IA...">
+          </div>
+          <div>
+            <label>Color</label>
+            <div class="color-row">
+              <input type="color" id="spColor">
+              <span id="spColorHex" style="font-size:11px;color:var(--text-tertiary);font-family:var(--font-mono)"></span>
+            </div>
+          </div>
+        </div>
+        <label>Tags</label>
+        <div id="spTagsWrap" class="sp-tags-input"></div>
+        <div style="display:flex;gap:6px;margin-top:8px">
+          <input type="text" id="spTagInput" placeholder="Nuevo tag..." style="flex:1;padding:7px 10px;font-size:0.8rem">
+          <button class="sp-add-btn" id="spTagAdd">+ Tag</button>
+        </div>
+        <label>Metricas</label>
+        <div id="spMetricsList" class="sp-metrics-list"></div>
+        <button class="sp-add-btn" id="spMetricAdd">+ Metrica</button>
+        <label>Objetivo</label>
+        <textarea id="spObj"></textarea>
+        <label>Notas</label>
+        <textarea id="spNotes" style="min-height:80px"></textarea>
+        <label>Tareas asociadas</label>
+        <div class="sp-task-count" id="spTasks">0 tareas</div>
+        <label>Conexiones</label>
+        <div class="sp-conn-list" id="spConns"></div>
+      </div>
+      <div class="sp-footer">
+        <button class="btn-del" id="spDelete">Eliminar proyecto</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const ECO_API = 'api';
+const CONN_COLORS = { 'client-flow': '#2ecc71', dependency: '#3498db', 'content-flow': '#c9a94e', revenue: '#e67e22', strategic: '#9b59b6' };
+const CONN_LABELS = { 'client-flow': 'Flujo de clientes', dependency: 'Dependencia', 'content-flow': 'Flujo de contenido', revenue: 'Revenue', strategic: 'Estrategico' };
+const STAGE_COLORS = { idea: '#888', desarrollo: '#3498db', mvp: '#e67e22', activo: '#2ecc71', escalando: '#c9a94e', escritura: '#9b59b6', pausado: '#555' };
+const STAGE_LABELS = { idea: 'IDEA', desarrollo: 'DEV', mvp: 'MVP', activo: 'ACTIVO', escalando: 'SCALE', escritura: 'ESCR', pausado: 'PAUSA' };
+
+let nodes = [], connections = [], tasks = [];
+let canvas, ctx, W, H, dpr;
+let scale = 1, panX = 0, panY = 0;
+let dragNode = null, dragOffX = 0, dragOffY = 0, didDrag = false;
+let isPanning = false, panStartX = 0, panStartY = 0, panStartPX = 0, panStartPY = 0;
+let selectedNode = null;
+let connectMode = false, connectFrom = null;
+let particles = [];
+let time = 0;
+let saveTimer = null;
+let hoverNode = null;
+
+// Card dimensions
+const NODE_W = 260, NODE_H = 170, NODE_R = 14;
+
+async function init() {
+  canvas = document.getElementById('ecoCanvas');
+  ctx = canvas.getContext('2d');
+  resize();
+  window.addEventListener('resize', resize);
+
+  const [eco, t] = await Promise.all([
+    fetch(`${ECO_API}/ecosystem`).then(r => r.json()),
+    fetch(`${ECO_API}/tasks`).then(r => r.json()),
+  ]);
+  nodes = eco.nodes || [];
+  connections = eco.connections || [];
+  tasks = t;
+
+  if (nodes.length > 0) {
+    const cx = nodes.reduce((s, n) => s + n.x, 0) / nodes.length + NODE_W / 2;
+    const cy = nodes.reduce((s, n) => s + n.y, 0) / nodes.length + NODE_H / 2;
+    panX = W / 2 - cx * scale;
+    panY = H / 2 - cy * scale;
+  }
+
+  initParticles();
+  bindEvents();
+  animate();
+}
+
+function resize() {
+  const wrap = canvas.parentElement;
+  dpr = window.devicePixelRatio || 1;
+  W = wrap.clientWidth; H = wrap.clientHeight;
+  canvas.width = W * dpr; canvas.height = H * dpr;
+  canvas.style.width = W + 'px'; canvas.style.height = H + 'px';
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+}
+
+function initParticles() {
+  particles = [];
+  connections.forEach(c => {
+    for (let i = 0; i < 4; i++) {
+      particles.push({ connId: c.id, t: i / 4, speed: 0.0008 + Math.random() * 0.0006, size: 2 + Math.random() * 1.5, brightness: 0.5 + Math.random() * 0.5 });
+    }
+  });
+}
+
+function addParticlesForConn(connId) {
+  for (let i = 0; i < 4; i++) particles.push({ connId, t: i / 4, speed: 0.0008 + Math.random() * 0.0006, size: 2 + Math.random() * 1.5, brightness: 0.5 + Math.random() * 0.5 });
+}
+
+// --- Helpers ---
+function toScreen(x, y) { return [x * scale + panX, y * scale + panY]; }
+function toWorld(sx, sy) { return [(sx - panX) / scale, (sy - panY) / scale]; }
+function hex2rgba(hex, a) {
+  const r = parseInt(hex.slice(1, 3), 16), g = parseInt(hex.slice(3, 5), 16), b = parseInt(hex.slice(5, 7), 16);
+  return `rgba(${r},${g},${b},${a})`;
+}
+function rr(ctx, x, y, w, h, r) { ctx.beginPath(); ctx.roundRect(x, y, w, h, r); }
+function truncText(ctx, text, maxW) {
+  if (!text) return '';
+  if (ctx.measureText(text).width <= maxW) return text;
+  let t = text;
+  while (t.length > 0 && ctx.measureText(t + '...').width > maxW) t = t.slice(0, -1);
+  return t + '...';
+}
+function bezierPt(x1, y1, cx1, cy1, cx2, cy2, x2, y2, t) {
+  const m = 1 - t;
+  return [m*m*m*x1 + 3*m*m*t*cx1 + 3*m*t*t*cx2 + t*t*t*x2, m*m*m*y1 + 3*m*m*t*cy1 + 3*m*t*t*cy2 + t*t*t*y2];
+}
+function getConnPts(fromN, toN) {
+  const [x1, y1] = toScreen(fromN.x + NODE_W / 2, fromN.y + NODE_H / 2);
+  const [x2, y2] = toScreen(toN.x + NODE_W / 2, toN.y + NODE_H / 2);
+  const dx = x2 - x1, dist = Math.sqrt(dx * dx + (y2 - y1) ** 2);
+  const bend = Math.min(dist * 0.35, 140);
+  return { x1, y1, x2, y2, cx1: x1 + bend * Math.sign(dx || 1), cy1: y1, cx2: x2 - bend * Math.sign(dx || 1), cy2: y2 };
+}
+
+// --- Grid ---
+function drawGrid() {
+  ctx.fillStyle = '#060609';
+  ctx.fillRect(0, 0, W, H);
+  const grd = ctx.createRadialGradient(W / 2, H / 2, 0, W / 2, H / 2, W * 0.6);
+  grd.addColorStop(0, 'rgba(201,169,78,0.015)');
+  grd.addColorStop(1, 'transparent');
+  ctx.fillStyle = grd;
+  ctx.fillRect(0, 0, W, H);
+  const gap = 40 * scale;
+  if (gap < 6) return;
+  const ox = panX % gap, oy = panY % gap;
+  ctx.fillStyle = `rgba(255,255,255,${Math.min(0.08, 0.03 + scale * 0.02)})`;
+  for (let x = ox; x < W; x += gap) for (let y = oy; y < H; y += gap) ctx.fillRect(x - 0.5, y - 0.5, 1, 1);
+}
+
+// --- Connections ---
+function drawConnections() {
+  connections.forEach(c => {
+    const fromN = nodes.find(n => n.id === c.from), toN = nodes.find(n => n.id === c.to);
+    if (!fromN || !toN) return;
+    const { x1, y1, x2, y2, cx1, cy1, cx2, cy2 } = getConnPts(fromN, toN);
+    const color = CONN_COLORS[c.type] || '#555';
+    ctx.save();
+    // Glow
+    ctx.strokeStyle = hex2rgba(color, 0.1); ctx.lineWidth = 8;
+    ctx.beginPath(); ctx.moveTo(x1, y1); ctx.bezierCurveTo(cx1, cy1, cx2, cy2, x2, y2); ctx.stroke();
+    // Dashed line
+    ctx.strokeStyle = hex2rgba(color, 0.3); ctx.lineWidth = 1.5; ctx.setLineDash([8, 6]);
+    ctx.beginPath(); ctx.moveTo(x1, y1); ctx.bezierCurveTo(cx1, cy1, cx2, cy2, x2, y2); ctx.stroke();
+    ctx.setLineDash([]);
+    // Arrow
+    const [ax, ay] = bezierPt(x1, y1, cx1, cy1, cx2, cy2, x2, y2, 0.88);
+    const [bx, by] = bezierPt(x1, y1, cx1, cy1, cx2, cy2, x2, y2, 0.86);
+    const angle = Math.atan2(ay - by, ax - bx);
+    ctx.fillStyle = hex2rgba(color, 0.5);
+    ctx.beginPath(); ctx.moveTo(ax, ay);
+    ctx.lineTo(ax - 8 * Math.cos(angle - 0.35), ay - 8 * Math.sin(angle - 0.35));
+    ctx.lineTo(ax - 8 * Math.cos(angle + 0.35), ay - 8 * Math.sin(angle + 0.35));
+    ctx.closePath(); ctx.fill();
+    // Label pill
+    if (c.label) {
+      const [lx, ly] = bezierPt(x1, y1, cx1, cy1, cx2, cy2, x2, y2, 0.5);
+      ctx.font = `500 ${Math.max(9, 10 * Math.min(scale, 1.3))}px Figtree, sans-serif`;
+      ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      const tw = ctx.measureText(c.label).width + 16;
+      ctx.fillStyle = 'rgba(6,6,9,0.88)';
+      rr(ctx, lx - tw / 2, ly - 11, tw, 22, 11); ctx.fill();
+      ctx.strokeStyle = hex2rgba(color, 0.2); ctx.lineWidth = 1;
+      rr(ctx, lx - tw / 2, ly - 11, tw, 22, 11); ctx.stroke();
+      ctx.fillStyle = hex2rgba(color, 0.7); ctx.fillText(c.label, lx, ly);
+    }
+    ctx.restore();
+  });
+
+  // Particles
+  particles.forEach(p => {
+    const c = connections.find(cn => cn.id === p.connId);
+    if (!c) return;
+    const fromN = nodes.find(n => n.id === c.from), toN = nodes.find(n => n.id === c.to);
+    if (!fromN || !toN) return;
+    p.t += p.speed; if (p.t > 1) p.t -= 1;
+    const { x1, y1, x2, y2, cx1, cy1, cx2, cy2 } = getConnPts(fromN, toN);
+    const [px, py] = bezierPt(x1, y1, cx1, cy1, cx2, cy2, x2, y2, p.t);
+    const color = CONN_COLORS[c.type] || '#555';
+    ctx.save();
+    ctx.shadowColor = color; ctx.shadowBlur = 10;
+    ctx.beginPath(); ctx.arc(px, py, p.size, 0, Math.PI * 2);
+    ctx.fillStyle = hex2rgba(color, p.brightness * 0.7); ctx.fill();
+    ctx.restore();
+    ctx.beginPath(); ctx.arc(px, py, p.size * 0.4, 0, Math.PI * 2);
+    ctx.fillStyle = 'rgba(255,255,255,0.7)'; ctx.fill();
+  });
+}
+
+// --- Node Cards ---
+function drawNodes() {
+  const t = time;
+  nodes.forEach(n => {
+    const [x, y] = toScreen(n.x, n.y);
+    const w = NODE_W * scale, h = NODE_H * scale, r = NODE_R * scale;
+    const isHover = n === hoverNode;
+    const isSel = n === selectedNode;
+    const color = n.color || '#666';
+    const pulse = 0.6 + 0.2 * Math.sin(t / 2000 + n.x * 0.01);
+    const s = scale; // shorthand
+
+    ctx.save();
+
+    // Outer glow on hover/select
+    if (isSel || isHover) {
+      ctx.shadowColor = color; ctx.shadowBlur = 35;
+      ctx.strokeStyle = hex2rgba(color, 0.2); ctx.lineWidth = 1;
+      rr(ctx, x - 3, y - 3, w + 6, h + 6, r + 3); ctx.stroke();
+      ctx.shadowBlur = 0;
+    }
+
+    // Ambient glow
+    const ag = ctx.createRadialGradient(x + w / 2, y + h / 2, 0, x + w / 2, y + h / 2, w * 0.6);
+    ag.addColorStop(0, hex2rgba(color, 0.04 * pulse));
+    ag.addColorStop(1, 'transparent');
+    ctx.fillStyle = ag;
+    ctx.fillRect(x - w * 0.2, y - h * 0.3, w * 1.4, h * 1.6);
+
+    // Card body
+    const bg = ctx.createLinearGradient(x, y, x, y + h);
+    bg.addColorStop(0, 'rgba(16,18,26,0.97)');
+    bg.addColorStop(1, 'rgba(10,11,16,0.99)');
+    ctx.fillStyle = bg;
+    rr(ctx, x, y, w, h, r); ctx.fill();
+
+    // Top color bar
+    const topG = ctx.createLinearGradient(x, y, x + w, y);
+    topG.addColorStop(0, hex2rgba(color, 0));
+    topG.addColorStop(0.2, hex2rgba(color, isSel ? 0.9 : 0.6 * pulse));
+    topG.addColorStop(0.8, hex2rgba(color, isSel ? 0.9 : 0.6 * pulse));
+    topG.addColorStop(1, hex2rgba(color, 0));
+    ctx.fillStyle = topG;
+    rr(ctx, x, y, w, 2.5 * s, [r, r, 0, 0]); ctx.fill();
+
+    // Border
+    ctx.strokeStyle = hex2rgba(color, isSel ? 0.5 : isHover ? 0.3 : 0.1);
+    ctx.lineWidth = isSel ? 1.5 : 1;
+    rr(ctx, x, y, w, h, r); ctx.stroke();
+
+    // Inner shine
+    const sh = ctx.createLinearGradient(x, y, x, y + h * 0.3);
+    sh.addColorStop(0, 'rgba(255,255,255,0.03)');
+    sh.addColorStop(1, 'transparent');
+    ctx.fillStyle = sh;
+    rr(ctx, x, y, w, h * 0.3, [r, r, 0, 0]); ctx.fill();
+
+    // --- Content layout ---
+    const pad = 14 * s;
+    const contentX = x + pad;
+    const contentW = w - pad * 2;
+
+    // Row 1: Hex icon + Name + Stage badge
+    const iconX = contentX + 10 * s;
+    const row1Y = y + 18 * s;
+
+    // Animated hex icon
+    ctx.save();
+    ctx.translate(iconX, row1Y);
+    const hexR = 9 * s;
+    ctx.rotate(t / 8000 + n.x * 0.1);
+    ctx.beginPath();
+    for (let i = 0; i < 6; i++) { const a = Math.PI / 3 * i; const hx = hexR * Math.cos(a); const hy = hexR * Math.sin(a); i === 0 ? ctx.moveTo(hx, hy) : ctx.lineTo(hx, hy); }
+    ctx.closePath();
+    ctx.strokeStyle = hex2rgba(color, 0.4 * pulse); ctx.lineWidth = 1.2; ctx.stroke();
+    ctx.rotate(-t / 4000);
+    ctx.beginPath();
+    for (let i = 0; i < 6; i++) { const a = Math.PI / 3 * i; const hx = hexR * 0.5 * Math.cos(a); const hy = hexR * 0.5 * Math.sin(a); i === 0 ? ctx.moveTo(hx, hy) : ctx.lineTo(hx, hy); }
+    ctx.closePath();
+    ctx.fillStyle = hex2rgba(color, 0.15); ctx.fill();
+    ctx.beginPath(); ctx.arc(0, 0, 2.5 * s, 0, Math.PI * 2);
+    ctx.fillStyle = color; ctx.shadowColor = color; ctx.shadowBlur = 6 * s; ctx.fill();
+    ctx.shadowBlur = 0;
+    ctx.restore();
+
+    // Name text
+    const nameX = iconX + 16 * s;
+    ctx.font = `600 ${Math.max(10, 13 * s)}px Outfit, sans-serif`;
+    ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
+    ctx.fillStyle = '#f0f0f2';
+    const nameMaxW = contentW - 32 * s - (n.stage ? 50 * s : 0);
+    ctx.fillText(truncText(ctx, n.name, nameMaxW), nameX, row1Y);
+
+    // Stage badge (top right)
+    if (n.stage) {
+      const stageColor = STAGE_COLORS[n.stage] || '#888';
+      const stageLabel = STAGE_LABELS[n.stage] || n.stage.toUpperCase();
+      ctx.font = `700 ${Math.max(7, 8.5 * s)}px Outfit, sans-serif`;
+      const stw = ctx.measureText(stageLabel).width + 12 * s;
+      const stx = x + w - pad - stw;
+      const sty = row1Y - 8 * s;
+      ctx.fillStyle = hex2rgba(stageColor, 0.15);
+      rr(ctx, stx, sty, stw, 16 * s, 8 * s); ctx.fill();
+      ctx.strokeStyle = hex2rgba(stageColor, 0.3); ctx.lineWidth = 0.8;
+      rr(ctx, stx, sty, stw, 16 * s, 8 * s); ctx.stroke();
+      ctx.fillStyle = stageColor;
+      ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      ctx.fillText(stageLabel, stx + stw / 2, sty + 8 * s);
+    }
+
+    // Row 2: Description
+    const row2Y = row1Y + 20 * s;
+    ctx.font = `400 ${Math.max(8, 10 * s)}px Figtree, sans-serif`;
+    ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
+    ctx.fillStyle = 'rgba(255,255,255,0.4)';
+    ctx.fillText(truncText(ctx, n.description || '', contentW), contentX, row2Y);
+
+    // Separator line
+    const sepY = row2Y + 14 * s;
+    ctx.strokeStyle = 'rgba(255,255,255,0.05)'; ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(contentX, sepY); ctx.lineTo(x + w - pad, sepY); ctx.stroke();
+
+    // Row 3: Metrics (up to 3 key-value pairs)
+    const metrics = n.metrics || [];
+    const row3Y = sepY + 14 * s;
+    if (metrics.length > 0) {
+      const mCount = Math.min(metrics.length, 3);
+      const mWidth = contentW / mCount;
+      metrics.slice(0, 3).forEach((m, i) => {
+        const mx = contentX + mWidth * i;
+        // Label
+        ctx.font = `600 ${Math.max(6, 7.5 * s)}px Outfit, sans-serif`;
+        ctx.fillStyle = 'rgba(255,255,255,0.25)';
+        ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
+        ctx.fillText((m.label || '').toUpperCase(), mx, row3Y);
+        // Value
+        ctx.font = `600 ${Math.max(8, 10.5 * s)}px Figtree, sans-serif`;
+        ctx.fillStyle = hex2rgba(color, 0.8);
+        ctx.fillText(truncText(ctx, m.value || '', mWidth - 6 * s), mx, row3Y + 13 * s);
+      });
+    }
+
+    // Row 4: Tags
+    const tags = n.tags || [];
+    if (tags.length > 0) {
+      const tagY = row3Y + (metrics.length > 0 ? 30 : 2) * s;
+      let tx = contentX;
+      ctx.font = `600 ${Math.max(6, 7.5 * s)}px Figtree, sans-serif`;
+      tags.slice(0, 4).forEach(tag => {
+        const tw = ctx.measureText(tag).width + 10 * s;
+        if (tx + tw > x + w - pad) return;
+        ctx.fillStyle = hex2rgba(color, 0.08);
+        rr(ctx, tx, tagY - 7 * s, tw, 14 * s, 7 * s); ctx.fill();
+        ctx.fillStyle = hex2rgba(color, 0.6);
+        ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
+        ctx.fillText(tag, tx + 5 * s, tagY);
+        tx += tw + 4 * s;
+      });
+    }
+
+    // Active pulse dot (top right corner)
+    if (n.active !== false) {
+      const dx = x + w - 8 * s, dy = y + 8 * s;
+      const dp = 2.5 + Math.sin(t / 600) * 0.8;
+      ctx.beginPath(); ctx.arc(dx, dy, dp * s, 0, Math.PI * 2);
+      ctx.fillStyle = hex2rgba('#34d399', 0.5); ctx.fill();
+      ctx.beginPath(); ctx.arc(dx, dy, 1.5 * s, 0, Math.PI * 2);
+      ctx.fillStyle = '#34d399'; ctx.fill();
+    }
+
+    ctx.restore();
+  });
+}
+
+// --- Connect mode ---
+let connectMouseX = null, connectMouseY = null;
+
+function draw() {
+  drawGrid();
+  drawConnections();
+  drawNodes();
+  if (connectMode && connectFrom && connectMouseX != null) {
+    const [x1, y1] = toScreen(connectFrom.x + NODE_W / 2, connectFrom.y + NODE_H / 2);
+    ctx.save();
+    ctx.strokeStyle = '#c9a94e'; ctx.lineWidth = 2; ctx.setLineDash([8, 6]);
+    ctx.shadowColor = '#c9a94e'; ctx.shadowBlur = 12;
+    ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(connectMouseX, connectMouseY); ctx.stroke();
+    ctx.restore();
+  }
+}
+
+function animate(ts) { time = ts || 0; draw(); requestAnimationFrame(animate); }
+
+// --- Interaction ---
+function nodeAt(sx, sy) {
+  const [wx, wy] = toWorld(sx, sy);
+  for (let i = nodes.length - 1; i >= 0; i--) {
+    const n = nodes[i];
+    if (wx >= n.x && wx <= n.x + NODE_W && wy >= n.y && wy <= n.y + NODE_H) return n;
+  }
+  return null;
+}
+
+function bindEvents() {
+  canvas.addEventListener('mousedown', e => {
+    const rect = canvas.getBoundingClientRect();
+    const sx = e.clientX - rect.left, sy = e.clientY - rect.top;
+    const n = nodeAt(sx, sy);
+    if (connectMode) {
+      if (n) {
+        if (!connectFrom) { connectFrom = n; }
+        else if (n !== connectFrom) {
+          const label = prompt('Etiqueta de la conexion:', '');
+          if (label !== null) createConnection(connectFrom.id, n.id, label);
+          connectMode = false; connectFrom = null;
+          canvas.classList.remove('connecting');
+          document.getElementById('btnNewConn').classList.remove('active');
+        }
+      }
+      return;
+    }
+    if (n) {
+      dragNode = n; didDrag = false;
+      dragOffX = sx / scale - n.x - panX / scale;
+      dragOffY = sy / scale - n.y - panY / scale;
+      canvas.classList.add('dragging');
+    } else {
+      isPanning = true; panStartX = e.clientX; panStartY = e.clientY;
+      panStartPX = panX; panStartPY = panY;
+      canvas.classList.add('dragging');
+    }
+  });
+
+  canvas.addEventListener('mousemove', e => {
+    const rect = canvas.getBoundingClientRect();
+    const sx = e.clientX - rect.left, sy = e.clientY - rect.top;
+    if (connectMode) { connectMouseX = sx; connectMouseY = sy; }
+    if (dragNode) {
+      const nx = sx / scale - dragOffX - panX / scale;
+      const ny = sy / scale - dragOffY - panY / scale;
+      if (Math.abs(nx - dragNode.x) > 3 || Math.abs(ny - dragNode.y) > 3) didDrag = true;
+      dragNode.x = nx; dragNode.y = ny;
+    } else if (isPanning) {
+      panX = panStartPX + (e.clientX - panStartX);
+      panY = panStartPY + (e.clientY - panStartY);
+    } else {
+      const n = nodeAt(sx, sy);
+      if (n !== hoverNode) { hoverNode = n; canvas.style.cursor = n ? 'pointer' : 'grab'; }
+    }
+  });
+
+  canvas.addEventListener('mouseup', () => {
+    if (dragNode) {
+      saveNodePos(dragNode);
+      if (!didDrag) openPanel(dragNode);
+      dragNode = null;
+    }
+    isPanning = false;
+    canvas.classList.remove('dragging');
+  });
+
+  canvas.addEventListener('wheel', e => {
+    e.preventDefault();
+    const rect = canvas.getBoundingClientRect();
+    const mx = e.clientX - rect.left, my = e.clientY - rect.top;
+    const [wx, wy] = toWorld(mx, my);
+    scale = Math.max(0.2, Math.min(4, scale * (e.deltaY > 0 ? 0.92 : 1.08)));
+    panX = mx - wx * scale; panY = my - wy * scale;
+    document.getElementById('zoomLabel').textContent = Math.round(scale * 100) + '%';
+  }, { passive: false });
+
+  document.getElementById('btnNewNode').addEventListener('click', createNode);
+  document.getElementById('btnNewConn').addEventListener('click', () => {
+    connectMode = !connectMode; connectFrom = null;
+    canvas.classList.toggle('connecting', connectMode);
+    document.getElementById('btnNewConn').classList.toggle('active', connectMode);
+  });
+  document.getElementById('btnReset').addEventListener('click', () => {
+    if (nodes.length > 0) {
+      const cx = nodes.reduce((s, n) => s + n.x, 0) / nodes.length + NODE_W / 2;
+      const cy = nodes.reduce((s, n) => s + n.y, 0) / nodes.length + NODE_H / 2;
+      scale = 1; panX = W / 2 - cx; panY = H / 2 - cy;
+    } else { scale = 1; panX = 0; panY = 0; }
+    document.getElementById('zoomLabel').textContent = '100%';
+  });
+  document.getElementById('spClose').addEventListener('click', closePanel);
+  document.getElementById('spDelete').addEventListener('click', deleteNode);
+  document.getElementById('spTagAdd').addEventListener('click', addTag);
+  document.getElementById('spTagInput').addEventListener('keydown', e => { if (e.key === 'Enter') addTag(); });
+  document.getElementById('spMetricAdd').addEventListener('click', addMetric);
+
+  ['spName', 'spDesc', 'spObj', 'spNotes', 'spColor', 'spStage', 'spRevenue', 'spAgent'].forEach(id => {
+    document.getElementById(id).addEventListener('input', scheduleSave);
+  });
+}
+
+// --- Panel ---
+function openPanel(n) {
+  selectedNode = n;
+  document.getElementById('spTitle').textContent = n.name || 'Proyecto';
+  document.getElementById('spName').value = n.name;
+  document.getElementById('spDesc').value = n.description || '';
+  document.getElementById('spObj').value = n.objective || '';
+  document.getElementById('spNotes').value = n.notes || '';
+  document.getElementById('spColor').value = n.color;
+  document.getElementById('spColorHex').textContent = n.color;
+  document.getElementById('spStage').value = n.stage || 'idea';
+  document.getElementById('spRevenue').value = n.revenue || '';
+  document.getElementById('spAgent').value = n.agent || '';
+  renderTags();
+  renderMetrics();
+  const count = tasks.filter(t => t.project && (n.name.toLowerCase().includes(t.project.toLowerCase().split(' ')[0]) || t.project === n.name)).length;
+  document.getElementById('spTasks').textContent = count + ' tareas';
+  const conns = connections.filter(c => c.from === n.id || c.to === n.id);
+  const el = document.getElementById('spConns');
+  if (!conns.length) { el.innerHTML = '<span style="color:var(--text-tertiary);font-size:0.75rem">Sin conexiones</span>'; }
+  else {
+    el.innerHTML = conns.map(c => {
+      const other = c.from === n.id ? nodes.find(x => x.id === c.to) : nodes.find(x => x.id === c.from);
+      const dir = c.from === n.id ? '&rarr;' : '&larr;';
+      return `<div class="sp-conn-item"><span class="sp-conn-dot" style="background:${CONN_COLORS[c.type] || '#555'}"></span>${dir} ${other?.name || '?'} <span style="color:var(--text-tertiary);font-size:0.72rem;margin-left:auto">${CONN_LABELS[c.type] || c.type}</span></div>`;
+    }).join('');
+  }
+  document.getElementById('sidePanel').classList.add('open');
+}
+
+function renderTags() {
+  if (!selectedNode) return;
+  const tags = selectedNode.tags || [];
+  document.getElementById('spTagsWrap').innerHTML = tags.map((t, i) =>
+    `<span class="sp-tag-chip">${esc(t)}<button onclick="removeTag(${i})">x</button></span>`
+  ).join('');
+}
+
+function addTag() {
+  if (!selectedNode) return;
+  const input = document.getElementById('spTagInput');
+  const val = input.value.trim();
+  if (!val) return;
+  if (!selectedNode.tags) selectedNode.tags = [];
+  selectedNode.tags.push(val);
+  input.value = '';
+  renderTags();
+  scheduleSave();
+}
+
+window.removeTag = function(i) {
+  if (!selectedNode || !selectedNode.tags) return;
+  selectedNode.tags.splice(i, 1);
+  renderTags();
+  scheduleSave();
+};
+
+function renderMetrics() {
+  if (!selectedNode) return;
+  const metrics = selectedNode.metrics || [];
+  document.getElementById('spMetricsList').innerHTML = metrics.map((m, i) =>
+    `<div class="sp-metric-row">
+      <input type="text" value="${esc(m.label)}" placeholder="Label" onchange="updateMetric(${i},'label',this.value)">
+      <input type="text" value="${esc(m.value)}" placeholder="Valor" onchange="updateMetric(${i},'value',this.value)">
+      <button onclick="removeMetric(${i})">x</button>
+    </div>`
+  ).join('');
+}
+
+function addMetric() {
+  if (!selectedNode) return;
+  if (!selectedNode.metrics) selectedNode.metrics = [];
+  selectedNode.metrics.push({ label: '', value: '' });
+  renderMetrics();
+}
+
+window.updateMetric = function(i, key, val) {
+  if (!selectedNode || !selectedNode.metrics) return;
+  selectedNode.metrics[i][key] = val;
+  scheduleSave();
+};
+
+window.removeMetric = function(i) {
+  if (!selectedNode || !selectedNode.metrics) return;
+  selectedNode.metrics.splice(i, 1);
+  renderMetrics();
+  scheduleSave();
+};
+
+function closePanel() {
+  document.getElementById('sidePanel').classList.remove('open');
+  selectedNode = null;
+}
+
+function scheduleSave() { clearTimeout(saveTimer); saveTimer = setTimeout(savePanel, 500); }
+
+async function savePanel() {
+  if (!selectedNode) return;
+  const body = {
+    name: document.getElementById('spName').value,
+    description: document.getElementById('spDesc').value,
+    objective: document.getElementById('spObj').value,
+    notes: document.getElementById('spNotes').value,
+    color: document.getElementById('spColor').value,
+    stage: document.getElementById('spStage').value,
+    revenue: document.getElementById('spRevenue').value,
+    agent: document.getElementById('spAgent').value,
+    tags: selectedNode.tags || [],
+    metrics: selectedNode.metrics || [],
+  };
+  Object.assign(selectedNode, body);
+  document.getElementById('spTitle').textContent = body.name || 'Proyecto';
+  document.getElementById('spColorHex').textContent = body.color;
+  await fetch(`${ECO_API}/ecosystem/nodes/${selectedNode.id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+  const saved = document.getElementById('spSaved');
+  saved.classList.add('show'); setTimeout(() => saved.classList.remove('show'), 1500);
+}
+
+async function saveNodePos(n) {
+  await fetch(`${ECO_API}/ecosystem/nodes/${n.id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ x: Math.round(n.x), y: Math.round(n.y) }) });
+}
+
+async function createNode() {
+  const r = await fetch(`${ECO_API}/ecosystem/nodes`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({}) });
+  const node = await r.json();
+  nodes.push(node);
+  openPanel(node);
+}
+
+async function deleteNode() {
+  if (!selectedNode || !confirm('Eliminar este proyecto del ecosistema?')) return;
+  await fetch(`${ECO_API}/ecosystem/nodes/${selectedNode.id}`, { method: 'DELETE' });
+  nodes = nodes.filter(n => n.id !== selectedNode.id);
+  connections = connections.filter(c => c.from !== selectedNode.id && c.to !== selectedNode.id);
+  initParticles(); closePanel();
+}
+
+async function createConnection(fromId, toId, label) {
+  const tc = prompt('Tipo (1=Clientes, 2=Dependencia, 3=Contenido, 4=Revenue, 5=Estrategico):', '1');
+  const types = { '1': 'client-flow', '2': 'dependency', '3': 'content-flow', '4': 'revenue', '5': 'strategic' };
+  const type = types[tc] || 'strategic';
+  const r = await fetch(`${ECO_API}/ecosystem/connections`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ from: fromId, to: toId, label: label || '', type }) });
+  const conn = await r.json();
+  connections.push(conn);
+  addParticlesForConn(conn.id);
+}
+
+init();
+initSidebar();
+</script>
+</div>
+</body>
+</html>

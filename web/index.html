@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Qualia Holding Board — Cockpit</title>
+<script src="shared.js"></script>
+<style id="shared-css"></style>
+<style>
+/* KPI Bar */
+.kpi-bar { display: grid; grid-template-columns: repeat(5, 1fr); gap: 14px; padding: 28px 28px 20px; }
+.kpi-card {
+  background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px;
+  padding: 24px; position: relative; overflow: hidden; transition: all .25s; cursor: default;
+}
+.kpi-card:hover { transform: translateY(-2px); box-shadow: 0 12px 32px rgba(0,0,0,0.35); border-color: var(--border-hover); }
+.kpi-card::after { content: ''; position: absolute; bottom: 0; left: 0; right: 0; height: 2px; }
+.kpi-card.kpi-active::after { background: var(--gold); }
+.kpi-card.kpi-blocked::after { background: var(--red); }
+.kpi-card.kpi-progress::after { background: var(--cyan); }
+.kpi-card.kpi-unassigned::after { background: #f59e0b; }
+.kpi-card.kpi-projects::after { background: var(--green); }
+.kpi-value { font-family: var(--font-heading); font-size: 2.8rem; font-weight: 700; line-height: 1; }
+.kpi-card.kpi-active .kpi-value { color: var(--gold); }
+.kpi-card.kpi-blocked .kpi-value { color: var(--red); }
+.kpi-card.kpi-progress .kpi-value { color: var(--cyan); }
+.kpi-card.kpi-unassigned .kpi-value { color: #f59e0b; }
+.kpi-card.kpi-projects .kpi-value { color: var(--green); }
+.kpi-label {
+  font-family: var(--font-heading); font-size: 0.65rem; font-weight: 700;
+  color: var(--text-tertiary); margin-top: 10px;
+  text-transform: uppercase; letter-spacing: 2px;
+}
+
+/* Attention Section */
+.section { padding: 0 28px 28px; }
+.section-title {
+  font-family: var(--font-heading); font-size: 0.65rem; font-weight: 700;
+  color: var(--text-secondary); margin-bottom: 16px;
+  display: flex; align-items: center; gap: 10px;
+  text-transform: uppercase; letter-spacing: 2px;
+}
+.section-title .warn-icon { width: 18px; height: 18px; display: inline-flex; align-items: center; justify-content: center; }
+.section-title .warn-icon svg { width: 16px; height: 16px; stroke: var(--red); fill: none; stroke-width: 2; }
+.attention-list { display: flex; flex-direction: column; gap: 6px; }
+.attention-item {
+  background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px;
+  padding: 14px 20px; cursor: pointer; transition: all .2s;
+  display: flex; align-items: center; gap: 14px;
+}
+.attention-item:hover { border-color: var(--border-hover); background: var(--bg-card-hover); }
+.attention-tag {
+  display: inline-flex; align-items: center; gap: 5px;
+  padding: 3px 12px; border-radius: 20px;
+  font-family: var(--font-body); font-size: 0.7rem; font-weight: 600;
+  text-transform: uppercase; letter-spacing: 0.5px; white-space: nowrap;
+}
+.attention-tag.tag-blocked { background: rgba(248,113,113,.1); color: var(--red); }
+.attention-tag.tag-high { background: rgba(245,158,11,.1); color: #f59e0b; }
+.attention-tag.tag-deadline { background: var(--gold-dim); color: var(--gold); }
+.attention-title { font-family: var(--font-body); font-size: 0.875rem; font-weight: 500; flex: 1; }
+.attention-detail { font-size: 0.75rem; color: var(--text-tertiary); font-family: var(--font-mono); }
+.attention-empty {
+  color: var(--text-tertiary); font-size: 0.875rem; padding: 24px;
+  text-align: center; background: var(--bg-card); border-radius: 12px;
+  border: 1px solid var(--border); font-family: var(--font-body);
+}
+
+/* Project Grid */
+.project-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
+.project-card {
+  background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px;
+  padding: 22px 24px; cursor: pointer; transition: all .2s;
+  border-left: 3px solid var(--border);
+}
+.project-card:hover { border-color: var(--border-hover); background: var(--bg-card-hover); }
+.project-card-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
+.project-card-name { font-family: var(--font-heading); font-size: 0.95rem; font-weight: 600; }
+.project-card-agent { font-size: 0.7rem; color: var(--text-tertiary); font-family: var(--font-mono); }
+.project-stats { display: flex; gap: 16px; margin-bottom: 12px; }
+.project-stat { text-align: center; flex: 1; }
+.project-stat-val { font-family: var(--font-heading); font-size: 1.25rem; font-weight: 700; }
+.project-stat-label {
+  font-family: var(--font-heading); font-size: 0.6rem; font-weight: 700;
+  color: var(--text-tertiary); text-transform: uppercase; letter-spacing: 1.5px; margin-top: 2px;
+}
+.project-bar { height: 3px; border-radius: 2px; background: rgba(255,255,255,0.04); display: flex; overflow: hidden; margin-top: 12px; }
+.project-bar-seg { height: 100%; transition: width .3s; }
+.project-blocked-note {
+  font-family: var(--font-heading); font-size: 0.65rem; font-weight: 700;
+  color: var(--red); margin-top: 12px;
+  text-transform: uppercase; letter-spacing: 1px;
+}
+
+@media (max-width: 1024px) {
+  .kpi-bar { grid-template-columns: repeat(3, 1fr); }
+  .project-grid { grid-template-columns: repeat(2, 1fr); }
+}
+@media (max-width: 768px) {
+  .kpi-bar { grid-template-columns: repeat(2, 1fr); padding: 20px 16px 16px; }
+  .project-grid { grid-template-columns: repeat(2, 1fr); }
+  .section { padding: 0 16px 20px; }
+}
+@media (max-width: 375px) {
+  .kpi-bar { grid-template-columns: 1fr 1fr; gap: 10px; }
+  .kpi-value { font-size: 2rem; }
+  .project-grid { grid-template-columns: 1fr; }
+}
+</style>
+</head>
+<body>
+<script>document.getElementById('shared-css').textContent = getSharedCSS();</script>
+<script>document.write(getNavHTML('cockpit'));</script>
+<div class="qb-main">
+
+<div class="kpi-bar" id="kpiBar"></div>
+
+<div class="section">
+  <div class="section-title"><span class="warn-icon"><svg viewBox="0 0 24 24"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z M12 9v4 M12 17h.01" stroke-linecap="round" stroke-linejoin="round"/></svg></span> Necesita tu atencion</div>
+  <div class="attention-list" id="attentionList"></div>
+</div>
+
+<div class="section">
+  <div class="section-title">Resumen por proyecto</div>
+  <div class="project-grid" id="projectGrid"></div>
+</div>
+
+<script>document.write(getModalHTML());</script>
+
+<script>
+async function init() {
+  const { tasks, projects, agents } = await loadData();
+  populateModalSelects(projects, agents);
+  initModalListeners();
+  document.querySelector('.btn-save').onclick = () => saveTask(init);
+  document.querySelector('.btn-delete').onclick = () => deleteTask(init);
+  document.querySelector('.btn-cancel').onclick = closeModal;
+
+  const active = tasks.filter(t => t.status !== 'done');
+  const blocked = active.filter(t => t.status === 'blocked');
+  const inProgress = active.filter(t => t.status === 'in-progress');
+  const highUnassigned = active.filter(t => t.priority === 'high' && t.status === 'idea');
+  const activeProjects = [...new Set(active.map(t => t.project))];
+
+  // KPIs
+  document.getElementById('kpiBar').innerHTML = `
+    <div class="kpi-card kpi-active"><div class="kpi-value">${active.length}</div><div class="kpi-label">Tareas activas</div></div>
+    <div class="kpi-card kpi-blocked"><div class="kpi-value">${blocked.length}</div><div class="kpi-label">Bloqueadas</div></div>
+    <div class="kpi-card kpi-progress"><div class="kpi-value">${inProgress.length}</div><div class="kpi-label">En progreso</div></div>
+    <div class="kpi-card kpi-unassigned"><div class="kpi-value">${highUnassigned.length}</div><div class="kpi-label">Alta prioridad sin avanzar</div></div>
+    <div class="kpi-card kpi-projects"><div class="kpi-value">${activeProjects.length}</div><div class="kpi-label">Proyectos activos</div></div>
+  `;
+
+  // Attention items
+  const attItems = [];
+
+  blocked.forEach(t => {
+    attItems.push({ task: t, type: 'blocked', tag: 'Bloqueada', detail: t.blockedBy ? `Por: ${t.blockedBy}` : '', cls: '', tagCls: 'tag-blocked' });
+  });
+
+  highUnassigned.forEach(t => {
+    attItems.push({ task: t, type: 'high', tag: 'Alta prioridad', detail: 'En ideas, sin avanzar', cls: 'att-high', tagCls: 'tag-high' });
+  });
+
+  // Deadline within 7 days
+  const now = new Date();
+  active.filter(t => t.deadline).forEach(t => {
+    const dl = new Date(t.deadline);
+    const days = Math.ceil((dl - now) / 86400000);
+    if (days <= 7 && days >= -3) {
+      attItems.push({ task: t, type: 'deadline', tag: days < 0 ? 'Vencida' : days === 0 ? 'Hoy' : `${days}d`, detail: t.deadline, cls: 'att-deadline', tagCls: 'tag-deadline' });
+    }
+  });
+
+  const attList = document.getElementById('attentionList');
+  if (attItems.length === 0) {
+    attList.innerHTML = '<div class="attention-empty">Todo en orden. No hay tareas que requieran atencion inmediata.</div>';
+  } else {
+    attList.innerHTML = attItems.map(a => `
+      <div class="attention-item ${a.cls}" onclick="openEditModal(_tasks.find(t=>t.id==='${a.task.id}'))">
+        <span class="attention-tag ${a.tagCls}">${a.tag}</span>
+        <span class="attention-title">${esc(a.task.title)}</span>
+        <span class="attention-detail">${esc(a.detail)}</span>
+      </div>
+    `).join('');
+  }
+
+  // Project grid
+  const grid = document.getElementById('projectGrid');
+  const statusOrder = ['in-progress', 'ready', 'idea', 'blocked'];
+  const statusColors = { 'idea': '#666', 'ready': '#c9a94e', 'in-progress': '#3498db', 'blocked': '#e74c3c' };
+  const statusLabels = { 'idea': 'Ideas', 'ready': 'Ready', 'in-progress': 'Progreso', 'blocked': 'Bloq.' };
+
+  grid.innerHTML = activeProjects.sort().map(proj => {
+    const pTasks = active.filter(t => t.project === proj);
+    const color = getProjectColor(proj);
+    const bySt = {};
+    statusOrder.forEach(s => bySt[s] = pTasks.filter(t => t.status === s).length);
+    const total = pTasks.length;
+    const blockedCount = bySt['blocked'];
+    const agentsInProj = [...new Set(pTasks.map(t => t.agent))];
+
+    return `
+      <div class="project-card" style="border-top-color:${color}" onclick="window.location='projects?project=${encodeURIComponent(proj)}'">
+        <div class="project-card-header">
+          <span class="project-card-name" style="color:${color}">${esc(proj)}</span>
+          <span class="project-card-agent">@${esc(agentsInProj.join(', @'))}</span>
+        </div>
+        <div class="project-stats">
+          ${statusOrder.map(s => `<div class="project-stat"><div class="project-stat-val" style="color:${statusColors[s]}">${bySt[s]}</div><div class="project-stat-label">${statusLabels[s]}</div></div>`).join('')}
+        </div>
+        <div class="project-bar">
+          ${statusOrder.map(s => `<div class="project-bar-seg" style="width:${total ? (bySt[s]/total*100) : 0}%;background:${statusColors[s]}"></div>`).join('')}
+        </div>
+        ${blockedCount ? `<div class="project-blocked-note">${blockedCount} tarea${blockedCount > 1 ? 's' : ''} bloqueada${blockedCount > 1 ? 's' : ''}</div>` : ''}
+      </div>
+    `;
+  }).join('');
+}
+
+init();
+initSidebar();
+</script>
+</div>
+</body>
+</html>

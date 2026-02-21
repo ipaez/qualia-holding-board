@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Qualia Holding Board — Completadas</title>
+<script src="shared.js"></script>
+<style id="shared-css"></style>
+<style>
+.filters {
+  display: flex; gap: 10px; padding: 14px 28px; align-items: center; flex-wrap: wrap;
+  border-bottom: 1px solid var(--border);
+}
+.filters input {
+  background: var(--bg-card); color: var(--text-primary); border: 1px solid var(--border);
+  padding: 8px 12px; border-radius: var(--radius-sm); font-size: 0.875rem;
+  flex: 1; min-width: 200px; font-family: var(--font-body); transition: border-color .2s;
+}
+.filters input:focus { outline: none; border-color: var(--gold); }
+
+.content { padding: 0 28px 40px; }
+.project-group { margin-bottom: 28px; }
+.project-title {
+  font-family: var(--font-heading); font-size: 0.95rem; font-weight: 600;
+  margin-bottom: 12px; padding-bottom: 8px; border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; gap: 10px;
+}
+.project-title-count {
+  font-family: var(--font-mono); font-size: 0.75rem; font-weight: 600;
+  color: var(--text-tertiary); background: var(--bg-card);
+  padding: 3px 12px; border-radius: var(--radius-pill);
+}
+
+.done-card {
+  background: var(--bg-card); border: 1px solid var(--border); border-radius: 10px;
+  padding: 14px 18px; margin-bottom: 6px; display: flex; align-items: center;
+  gap: 14px; cursor: pointer; transition: all .2s; border-left: 3px solid var(--border);
+}
+.done-card:hover { border-color: var(--border-hover); background: var(--bg-card-hover); }
+.done-card-info { flex: 1; }
+.done-card .title {
+  font-family: var(--font-body); font-size: 0.875rem; font-weight: 500;
+  margin-bottom: 5px; text-decoration: line-through; text-decoration-color: var(--text-tertiary);
+  color: var(--text-secondary);
+}
+.done-card .meta {
+  font-size: 0.7rem; color: var(--text-tertiary); font-family: var(--font-mono);
+  display: flex; gap: 14px; align-items: center;
+}
+.done-card .meta span:first-child { color: var(--text-secondary); }
+.btn-reopen {
+  background: transparent; border: 1px solid transparent; color: var(--text-tertiary);
+  padding: 5px 12px; border-radius: var(--radius-sm); font-size: 0.7rem;
+  font-family: var(--font-body); font-weight: 600;
+  cursor: pointer; transition: all .2s; white-space: nowrap; opacity: 0;
+}
+.done-card:hover .btn-reopen { opacity: 1; }
+.btn-reopen:hover { color: var(--gold); border-color: var(--gold); }
+.empty {
+  color: var(--text-tertiary); font-size: 0.875rem; padding: 24px;
+  text-align: center; background: var(--bg-card); border-radius: 12px;
+  border: 1px solid var(--border); font-family: var(--font-body);
+}
+.done-count {
+  font-family: var(--font-heading); font-size: 0.65rem; font-weight: 700;
+  color: var(--text-tertiary); padding: 16px 28px 10px;
+  text-transform: uppercase; letter-spacing: 2px;
+}
+
+@media (max-width: 768px) {
+  .filters { padding: 12px 16px; }
+  .content { padding: 0 16px 30px; }
+  .done-count { padding: 12px 16px 8px; }
+  .btn-reopen { opacity: 1; }
+}
+</style>
+</head>
+<body>
+<script>document.getElementById('shared-css').textContent = getSharedCSS();</script>
+<script>document.write(getNavHTML('done'));</script>
+<div class="qb-main">
+
+<div class="filters">
+  <input type="text" id="search" placeholder="Buscar tareas completadas...">
+</div>
+<div class="done-count" id="doneCount"></div>
+<div class="content" id="content"></div>
+
+<script>document.write(getModalHTML());</script>
+
+<script>
+let tasks = [];
+
+async function load() {
+  const data = await loadData();
+  tasks = data.tasks;
+  populateModalSelects(data.projects, data.agents);
+  initModalListeners();
+  document.querySelector('.btn-save').onclick = () => saveTask(load);
+  document.querySelector('.btn-delete').onclick = () => deleteTask(load);
+  document.querySelector('.btn-cancel').onclick = closeModal;
+  render();
+}
+
+function render() {
+  const q = document.getElementById('search').value.toLowerCase();
+  const done = tasks.filter(t => t.status === 'done' && (!q || t.title.toLowerCase().includes(q) || (t.description||'').toLowerCase().includes(q) || (t.notes||'').toLowerCase().includes(q)));
+
+  document.getElementById('doneCount').textContent = `${done.length} tarea${done.length !== 1 ? 's' : ''} completada${done.length !== 1 ? 's' : ''}`;
+
+  const byProject = {};
+  done.forEach(t => { const p = t.project || 'Otros'; if (!byProject[p]) byProject[p] = []; byProject[p].push(t); });
+
+  const el = document.getElementById('content');
+  if (!done.length) { el.innerHTML = '<div class="empty">No se encontraron tareas completadas</div>'; return; }
+
+  el.innerHTML = Object.entries(byProject).sort(([a],[b]) => a.localeCompare(b)).map(([project, items]) => {
+    const color = getProjectColor(project);
+    return `
+      <div class="project-group">
+        <div class="project-title"><span style="color:${color}">${esc(project)}</span><span class="project-title-count">${items.length}</span></div>
+        ${items.sort((a,b) => new Date(b.updatedAt) - new Date(a.updatedAt)).map(t => `
+          <div class="done-card" style="border-left-color:${color}" onclick="openEditModal(tasks.find(x=>x.id==='${t.id}'))">
+            <div class="done-card-info">
+              <div class="title">${esc(t.title)}</div>
+              <div class="meta">
+                <span>@${esc(t.agent)}</span>
+                <span>${new Date(t.updatedAt).toLocaleDateString('es-CL')}</span>
+                <span>${esc(t.type)}</span>
+              </div>
+            </div>
+            <button class="btn-reopen" onclick="event.stopPropagation(); reopen('${t.id}')">Reabrir</button>
+          </div>
+        `).join('')}
+      </div>
+    `;
+  }).join('');
+}
+
+async function reopen(id) {
+  await fetch(`${API}/tasks/${id}/move`, { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({status:'idea'}) });
+  await load();
+}
+
+document.getElementById('search').addEventListener('input', render);
+load();
+initSidebar();
+</script>
+</div>
+</body>
+</html>

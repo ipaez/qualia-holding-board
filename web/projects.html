@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Qualia Holding Board — Proyectos</title>
+<script src="shared.js"></script>
+<style id="shared-css"></style>
+<style>
+.filters {
+  display: flex; gap: 10px; padding: 14px 28px; align-items: center; flex-wrap: wrap;
+  border-bottom: 1px solid var(--border);
+}
+.filters select, .filters input {
+  background: var(--bg-card); color: var(--text-primary); border: 1px solid var(--border);
+  padding: 8px 12px; border-radius: var(--radius-sm); font-size: 0.85rem;
+  font-family: var(--font-body); transition: border-color .2s;
+}
+.filters select { cursor: pointer; }
+.filters input { flex: 1; min-width: 180px; }
+.filters select:focus, .filters input:focus { outline: none; border-color: var(--gold); }
+
+.projects-container { padding: 20px 28px 40px; }
+
+.project-block { margin-bottom: 16px; border: 1px solid var(--border); border-radius: 12px; overflow: hidden; }
+.project-block-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 18px 22px; cursor: pointer; transition: background .2s;
+  border-left: 4px solid var(--border);
+}
+.project-block-header:hover { background: rgba(255,255,255,.02); }
+.project-block-name { font-family: var(--font-heading); font-size: 1rem; font-weight: 600; }
+.project-block-meta { display: flex; gap: 16px; align-items: center; font-size: 0.8rem; color: var(--text-secondary); }
+.project-block-count {
+  font-family: var(--font-mono); font-size: 0.75rem;
+  background: var(--bg-card); padding: 3px 12px; border-radius: var(--radius-pill);
+}
+.project-block-body { padding: 0 22px 18px; }
+.project-block.collapsed .project-block-body { display: none; }
+.project-block-chevron {
+  color: var(--text-tertiary); transition: transform .25s ease; font-size: 14px;
+  display: inline-flex; align-items: center;
+}
+.project-block.collapsed .project-block-chevron { transform: rotate(-90deg); }
+
+.status-group { margin-bottom: 18px; }
+.status-group-title {
+  font-family: var(--font-heading); font-size: 0.65rem; font-weight: 700;
+  text-transform: uppercase; letter-spacing: 2px; color: var(--text-tertiary);
+  margin-bottom: 10px; padding-bottom: 6px; border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; gap: 8px;
+}
+.status-dot { width: 7px; height: 7px; border-radius: 50%; }
+
+.task-row {
+  display: flex; align-items: center; gap: 12px; padding: 11px 14px;
+  background: var(--bg-card); border: 1px solid var(--border);
+  border-radius: 10px; margin-bottom: 6px; cursor: pointer;
+  transition: all .2s; border-left: 3px solid transparent;
+}
+.task-row:hover { border-color: var(--border-hover); background: var(--bg-card-hover); }
+.task-row:nth-child(even) { background: rgba(255,255,255,0.01); }
+.task-row:nth-child(even):hover { background: var(--bg-card-hover); }
+.task-row-title { flex: 1; font-family: var(--font-body); font-size: 0.875rem; font-weight: 500; }
+.task-row-agent { font-size: 0.7rem; color: var(--text-tertiary); font-family: var(--font-mono); }
+.task-row-type {
+  font-family: var(--font-heading); font-size: 0.6rem; font-weight: 600;
+  color: var(--text-tertiary); text-transform: uppercase; letter-spacing: 1px;
+}
+
+.quick-status {
+  background: var(--bg-base); color: var(--text-primary); border: 1px solid var(--border);
+  border-radius: var(--radius-sm); padding: 4px 8px;
+  font-size: 0.75rem; font-family: var(--font-body); cursor: pointer;
+  transition: border-color .2s;
+}
+.quick-status:focus { outline: none; border-color: var(--gold); }
+
+@media (max-width: 768px) {
+  .filters { padding: 12px 16px; }
+  .projects-container { padding: 16px 16px 30px; }
+  .task-row { flex-wrap: wrap; }
+}
+</style>
+</head>
+<body>
+<script>document.getElementById('shared-css').textContent = getSharedCSS();</script>
+<script>document.write(getNavHTML('projects'));</script>
+<div class="qb-main">
+
+<div class="filters">
+  <select id="filterProject"><option value="">Todos los proyectos</option></select>
+  <input type="text" id="searchInput" placeholder="Buscar tareas...">
+</div>
+
+<div class="projects-container" id="container"></div>
+
+<script>document.write(getModalHTML());</script>
+
+<script>
+let tasks = [], projects = [], agents = [];
+const statusOrder = ['in-progress', 'ready', 'idea', 'blocked'];
+const statusLabels = { 'idea': 'Ideas', 'ready': 'Ready', 'in-progress': 'En progreso', 'blocked': 'Bloqueadas' };
+const statusColors = { 'idea': '#666', 'ready': '#c9a94e', 'in-progress': '#3498db', 'blocked': '#e74c3c' };
+const prioOrder = { 'high': 0, 'medium': 1, 'low': 2 };
+
+async function load() {
+  const data = await loadData();
+  tasks = data.tasks; projects = data.projects; agents = data.agents;
+  populateModalSelects(projects, agents);
+  initModalListeners();
+  document.querySelector('.btn-save').onclick = () => saveTask(load);
+  document.querySelector('.btn-delete').onclick = () => deleteTask(load);
+  document.querySelector('.btn-cancel').onclick = closeModal;
+
+  const fp = document.getElementById('filterProject');
+  const val = fp.value;
+  fp.innerHTML = '<option value="">Todos los proyectos</option>';
+  projects.forEach(p => { const o = document.createElement('option'); o.value = p; o.textContent = p; fp.appendChild(o); });
+  fp.value = val;
+
+  // Check URL param
+  const urlP = new URLSearchParams(window.location.search).get('project');
+  if (urlP && !fp.value) fp.value = urlP;
+
+  render();
+}
+
+function render() {
+  const fp = document.getElementById('filterProject').value;
+  const q = document.getElementById('searchInput').value.toLowerCase();
+  const active = tasks.filter(t => t.status !== 'done');
+
+  const projList = fp ? [fp] : [...new Set(active.map(t => t.project))].sort();
+  const container = document.getElementById('container');
+
+  container.innerHTML = projList.map(proj => {
+    const pTasks = active.filter(t => t.project === proj && (!q || t.title.toLowerCase().includes(q) || (t.description||'').toLowerCase().includes(q)));
+    if (pTasks.length === 0) return '';
+    const color = getProjectColor(proj);
+
+    return `
+      <div class="project-block" id="pb-${projClass(proj)}">
+        <div class="project-block-header" style="border-left-color:${color}" onclick="this.parentElement.classList.toggle('collapsed')">
+          <span class="project-block-name" style="color:${color}">${esc(proj)}</span>
+          <div class="project-block-meta">
+            <span class="project-block-count">${pTasks.length} tareas</span>
+            <span class="project-block-chevron">▼</span>
+          </div>
+        </div>
+        <div class="project-block-body">
+          ${statusOrder.map(status => {
+            const sTasks = pTasks.filter(t => t.status === status).sort((a,b) => (prioOrder[a.priority]||1) - (prioOrder[b.priority]||1));
+            if (sTasks.length === 0) return '';
+            return `
+              <div class="status-group">
+                <div class="status-group-title"><span class="status-dot" style="background:${statusColors[status]}"></span>${statusLabels[status]} (${sTasks.length})</div>
+                ${sTasks.map(t => `
+                  <div class="task-row ${projClass(t.project)}" style="border-left-color:${color}" onclick="openEditModal(tasks.find(x=>x.id==='${t.id}'))">
+                    <span class="priority-dot ${t.priority}"></span>
+                    <span class="task-row-title">${esc(t.title)}</span>
+                    <span class="task-row-type">${esc(t.type)}</span>
+                    <span class="task-row-agent">@${esc(t.agent)}</span>
+                    <select class="quick-status" onclick="event.stopPropagation()" onchange="quickMove('${t.id}', this.value)">
+                      ${['idea','ready','in-progress','blocked','done'].map(s => `<option value="${s}"${s===t.status?' selected':''}>${s==='in-progress'?'En progreso':s==='blocked'?'Bloqueada':s==='done'?'Done':s.charAt(0).toUpperCase()+s.slice(1)}</option>`).join('')}
+                    </select>
+                  </div>
+                `).join('')}
+              </div>
+            `;
+          }).join('')}
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+async function quickMove(id, status) {
+  await fetch(`${API}/tasks/${id}/move`, { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({status}) });
+  const t = tasks.find(t => t.id === id);
+  if (t) t.status = status;
+  render();
+}
+
+document.getElementById('filterProject').addEventListener('change', render);
+document.getElementById('searchInput').addEventListener('input', render);
+
+load();
+initSidebar();
+</script>
+</div>
+</body>
+</html>

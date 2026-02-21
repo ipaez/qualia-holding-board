@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Qualia Holding Board — Kanban</title>
+<script src="shared.js"></script>
+<style id="shared-css"></style>
+<style>
+.filters {
+  display: flex; gap: 10px; padding: 14px 28px; flex-wrap: wrap; align-items: center;
+  border-bottom: 1px solid var(--border);
+}
+.filters select, .filters input {
+  background: var(--bg-card); color: var(--text-primary); border: 1px solid var(--border);
+  padding: 8px 12px; border-radius: var(--radius-sm); font-size: 0.85rem;
+  font-family: var(--font-body); transition: border-color .2s; cursor: pointer;
+}
+.filters input { flex: 1; min-width: 180px; cursor: text; }
+.filters select:focus, .filters input:focus { outline: none; border-color: var(--gold); }
+
+.board { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; padding: 20px 28px; min-height: calc(100vh - 140px); }
+.column { background: rgba(255,255,255,.015); border-radius: 12px; padding: 14px; min-height: 200px; }
+.column-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; padding-bottom: 10px; border-bottom: 1px solid var(--border); }
+.column-title {
+  font-family: var(--font-heading); font-size: 0.65rem; font-weight: 700;
+  text-transform: uppercase; letter-spacing: 2px; color: var(--text-tertiary);
+}
+.column-count {
+  font-family: var(--font-mono); font-size: 0.7rem; font-weight: 600;
+  color: var(--text-tertiary); background: var(--bg-card);
+  padding: 2px 10px; border-radius: var(--radius-pill);
+}
+.column.drag-over { background: var(--gold-glow); }
+
+.card {
+  background: var(--bg-card); border: 1px solid var(--border); border-radius: 10px;
+  padding: 14px 16px; margin-bottom: 8px; cursor: grab; transition: all .2s;
+  border-left: 3px solid var(--border);
+}
+.card:hover { border-color: var(--border-hover); background: var(--bg-card-hover); }
+.card.dragging { opacity: .35; }
+.card-title { font-family: var(--font-body); font-size: 0.875rem; font-weight: 500; margin-bottom: 8px; line-height: 1.35; color: var(--text-primary); }
+.card-meta { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
+.badge-agent { color: var(--text-tertiary); font-size: 0.7rem; font-family: var(--font-mono); }
+.badge-type { font-size: 0.65rem; color: var(--text-tertiary); font-family: var(--font-heading); text-transform: uppercase; letter-spacing: 1px; font-weight: 600; }
+
+@media (max-width: 1024px) { .board { grid-template-columns: repeat(2, 1fr); } }
+@media (max-width: 768px) { .board { grid-template-columns: 1fr; } .column { min-height: auto; } }
+@media (max-width: 375px) { .filters { padding: 10px 16px; } .board { padding: 10px 16px; gap: 10px; } }
+</style>
+</head>
+<body>
+<script>document.getElementById('shared-css').textContent = getSharedCSS();</script>
+<script>document.write(getNavHTML('kanban'));</script>
+<div class="qb-main">
+
+<div class="filters">
+  <select id="filterProject"><option value="">Todos los proyectos</option></select>
+  <select id="filterAgent"><option value="">Todos los agentes</option></select>
+  <select id="filterPriority">
+    <option value="">Todas las prioridades</option>
+    <option value="high">Alta</option>
+    <option value="medium">Media</option>
+    <option value="low">Baja</option>
+  </select>
+  <input type="text" id="searchInput" placeholder="Buscar tareas...">
+</div>
+
+<div class="board" id="board">
+  <div class="column" data-status="idea">
+    <div class="column-header"><span class="column-title">Ideas</span><span class="column-count" id="count-idea">0</span></div>
+    <div class="column-body" id="col-idea"></div>
+  </div>
+  <div class="column" data-status="ready">
+    <div class="column-header"><span class="column-title">Ready</span><span class="column-count" id="count-ready">0</span></div>
+    <div class="column-body" id="col-ready"></div>
+  </div>
+  <div class="column" data-status="in-progress">
+    <div class="column-header"><span class="column-title">En progreso</span><span class="column-count" id="count-in-progress">0</span></div>
+    <div class="column-body" id="col-in-progress"></div>
+  </div>
+  <div class="column" data-status="blocked">
+    <div class="column-header"><span class="column-title">Bloqueadas</span><span class="column-count" id="count-blocked">0</span></div>
+    <div class="column-body" id="col-blocked"></div>
+  </div>
+</div>
+
+<script>document.write(getModalHTML());</script>
+
+<script>
+let tasks = [], projects = [], agents = [];
+
+function populateFilters() {
+  for (const sel of [document.getElementById('filterProject'), document.getElementById('fProject')]) {
+    const val = sel.value;
+    sel.innerHTML = sel.id.startsWith('filter') ? '<option value="">Todos los proyectos</option>' : '';
+    projects.forEach(p => { const o = document.createElement('option'); o.value = p; o.textContent = p; sel.appendChild(o); });
+    sel.value = val;
+  }
+  for (const sel of [document.getElementById('filterAgent'), document.getElementById('fAgent')]) {
+    const val = sel.value;
+    sel.innerHTML = sel.id.startsWith('filter') ? '<option value="">Todos los agentes</option>' : '';
+    agents.forEach(a => { const o = document.createElement('option'); o.value = a; o.textContent = a; sel.appendChild(o); });
+    sel.value = val;
+  }
+}
+
+function getFiltered() {
+  const fp = document.getElementById('filterProject').value;
+  const fa = document.getElementById('filterAgent').value;
+  const fpr = document.getElementById('filterPriority').value;
+  const q = document.getElementById('searchInput').value.toLowerCase();
+  return tasks.filter(t => {
+    if (t.status === 'done') return false;
+    if (fp && t.project !== fp) return false;
+    if (fa && t.agent !== fa) return false;
+    if (fpr && t.priority !== fpr) return false;
+    if (q && !t.title.toLowerCase().includes(q) && !(t.description||'').toLowerCase().includes(q)) return false;
+    return true;
+  });
+}
+
+function render() {
+  const filtered = getFiltered();
+  for (const status of ['idea','ready','in-progress','blocked']) {
+    const col = document.getElementById('col-' + status);
+    const items = filtered.filter(t => t.status === status);
+    document.getElementById('count-' + status).textContent = items.length;
+    col.innerHTML = items.map(t => `
+      <div class="card ${projClass(t.project)}" draggable="true" data-id="${t.id}"
+           ondragstart="dragStart(event)" onclick="openEditModal(tasks.find(x=>x.id==='${t.id}'))">
+        <div class="card-title">${esc(t.title)}</div>
+        <div class="card-meta">
+          <span class="priority-dot ${t.priority}"></span>
+          <span class="badge badge-project">${esc(t.project)}</span>
+          <span class="badge-agent">@${esc(t.agent)}</span>
+          <span class="badge-type">${esc(t.type)}</span>
+        </div>
+      </div>
+    `).join('');
+  }
+}
+
+// Drag & Drop
+let dragId = null;
+function dragStart(e) { dragId = e.target.closest('.card').dataset.id; e.target.closest('.card').classList.add('dragging'); e.dataTransfer.effectAllowed = 'move'; }
+
+document.querySelectorAll('.column').forEach(col => {
+  col.addEventListener('dragover', e => { e.preventDefault(); col.classList.add('drag-over'); });
+  col.addEventListener('dragleave', () => col.classList.remove('drag-over'));
+  col.addEventListener('drop', async e => {
+    e.preventDefault(); col.classList.remove('drag-over');
+    if (!dragId) return;
+    const status = col.dataset.status;
+    await fetch(`${API}/tasks/${dragId}/move`, { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({status}) });
+    const t = tasks.find(t => t.id === dragId);
+    if (t) t.status = status;
+    dragId = null;
+    render();
+  });
+});
+document.addEventListener('dragend', () => { document.querySelectorAll('.dragging').forEach(el => el.classList.remove('dragging')); dragId = null; });
+
+async function load() {
+  const data = await loadData();
+  tasks = data.tasks; projects = data.projects; agents = data.agents;
+  populateFilters();
+  render();
+  initModalListeners();
+  document.querySelector('.btn-save').onclick = () => saveTask(load);
+  document.querySelector('.btn-delete').onclick = () => deleteTask(load);
+  document.querySelector('.btn-cancel').onclick = closeModal;
+}
+
+['filterProject','filterAgent','filterPriority'].forEach(id => document.getElementById(id).addEventListener('change', render));
+document.getElementById('searchInput').addEventListener('input', render);
+
+load();
+initSidebar();
+</script>
+</div>
+</body>
+</html>

@@ -1,0 +1,14 @@
+{
+  "name": "Qualia Holding Board",
+  "type": "backend",
+  "entry": "server.mjs",
+  "description": "Control center para todos los proyectos del ecosistema Qualia",
+  "agent": "main",
+  "category": "principal",
+  "environments": {
+    "dev": {
+      "host": "hub",
+      "url": "http://192.168.1.111:18795/qualia-board/"
+    }
+  }
+}
