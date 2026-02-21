@@ -401,24 +401,25 @@ async function loadBoards() {
   boards = await fetch(`${ECO_BAPI}/boards`).then(r => r.json());
 }
 
-let boardStack = []; // [{id, name}] for breadcrumb navigation
+let boardStack = []; // [{id, name, focusNodeId}] for breadcrumb navigation
 
-function drillIntoBoard(id) {
-  // Push current board to stack before navigating
+function drillIntoBoard(id, focusNodeId) {
   if (currentBoard) {
-    // Avoid duplicates
     if (!boardStack.length || boardStack[boardStack.length - 1].id !== currentBoard.id) {
-      boardStack.push({ id: currentBoard.id, name: currentBoard.name });
+      boardStack.push({ id: currentBoard.id, name: currentBoard.name, focusNodeId: focusNodeId || null });
     }
   }
   return selectBoard(id);
 }
 
-function navigateBreadcrumb(index) {
-  // Navigate to a specific point in the stack
+async function navigateBreadcrumb(index) {
   const target = boardStack[index];
   boardStack = boardStack.slice(0, index);
-  return selectBoard(target.id);
+  await selectBoard(target.id);
+  if (target.focusNodeId) {
+    const node = currentBoard.cards.find(c => c.id === target.focusNodeId);
+    if (node) centerOnCard(node);
+  }
 }
 
 function renderBreadcrumb() {
@@ -965,7 +966,7 @@ function bindEvents() {
       saveCardPos(dragCard);
       if (!didDrag) {
         // If node has a sub-board, drill into it
-        if (dragCard.boardId) { drillIntoBoard(dragCard.boardId); dragCard = null; return; }
+        if (dragCard.boardId) { drillIntoBoard(dragCard.boardId, dragCard.id); dragCard = null; return; }
         openPanel(dragCard);
       }
       dragCard = null;
