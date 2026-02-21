@@ -33,6 +33,29 @@ html, body { height: 100%; overflow: hidden; }
 }
 .bs-add-board:hover { color: var(--gold); border-color: rgba(201,169,78,0.3); }
 
+/* Breadcrumb */
+.bs-breadcrumb {
+  display: flex; align-items: center; gap: 6px; padding: 10px 22px;
+  border-bottom: 1px solid var(--border); background: var(--bg-card);
+  font-family: var(--font-body); font-size: 0.85rem; flex-shrink: 0;
+  overflow-x: auto;
+}
+.bs-breadcrumb .bc-back {
+  color: var(--gold); cursor: pointer; display: flex; align-items: center; gap: 4px;
+  padding: 4px 10px; border-radius: 6px; border: 1px solid rgba(201,169,78,0.2);
+  background: var(--gold-glow); font-size: 0.78rem; font-weight: 600;
+  transition: all .15s; margin-right: 6px;
+}
+.bs-breadcrumb .bc-back:hover { background: var(--gold-dim); border-color: rgba(201,169,78,0.4); }
+.bs-breadcrumb .bc-item {
+  color: var(--text-secondary); cursor: pointer; transition: all .15s;
+  white-space: nowrap; padding: 4px 8px; border-radius: 6px; font-weight: 500;
+}
+.bs-breadcrumb .bc-item:hover { color: var(--gold); background: var(--gold-glow); }
+.bs-breadcrumb .bc-sep { color: var(--text-tertiary); opacity: 0.4; font-size: 0.75rem; }
+.bs-breadcrumb .bc-current { color: var(--text-primary); font-weight: 700; cursor: default; }
+.bs-breadcrumb .bc-current:hover { background: none; color: var(--text-primary); }
+
 /* Toolbar */
 .bs-toolbar {
   display: flex; align-items: center; gap: 8px; padding: 8px 22px;
@@ -230,6 +253,7 @@ canvas#bsCanvas.connecting { cursor: crosshair; }
 <div class="qb-main" style="height:100vh">
 <div class="bs-wrap">
   <div class="bs-boards-bar" id="boardsBar"></div>
+  <div class="bs-breadcrumb" id="breadcrumb" style="display:none"></div>
   <div class="bs-toolbar">
     <input class="bs-board-name" id="boardName" value="" placeholder="Nombre del board...">
     <div style="width:1px;height:20px;background:var(--border);margin:0 6px"></div>
@@ -346,11 +370,23 @@ async function init() {
   resize();
   window.addEventListener('resize', resize);
   await loadBoards();
-  const urlBoard = location.pathname.split('/').pop();
-  if (urlBoard && urlBoard !== 'brainstorm') {
-    const found = boards.find(b => b.id === urlBoard);
-    if (found) { await selectBoard(found.id); } else { autoSelect(); }
-  } else { autoSelect(); }
+  const parsed = parseHash();
+  const ids = parsed.ids;
+  if (ids.length > 0) {
+    const targetId = ids[ids.length - 1];
+    const parentIds = ids.slice(0, -1);
+    navPath = [];
+    for (let i = 0; i < parentIds.length; i++) {
+      const pid = parentIds[i];
+      const b = boards.find(b => b.id === pid);
+      navPath.push({ id: pid, name: b?.name || pid, focusNodeId: null });
+    }
+    const found = boards.find(b => b.id === targetId);
+    if (found) { await selectBoard(found.id, parsed.focusCardId); } else { autoSelect(); }
+  } else {
+    autoSelect();
+    if (currentBoard) location.replace('#' + currentBoard.id);
+  }
   bindEvents();
   animate();
 }
@@ -374,17 +410,98 @@ async function loadBoards() {
   boards = await fetch(`${BAPI}/boards`).then(r => r.json());
 }
 
-async function selectBoard(id) {
+// --- Navigation via hash ---
+let navPath = []; // [{id, name, focusNodeId}]
+
+function parseHash() {
+  const h = location.hash.replace('#', '');
+  if (!h) return { ids: [], focusCardId: null };
+  const segments = h.split('/');
+  let focusCardId = null;
+  const last = segments[segments.length - 1];
+  if (last.includes('@')) {
+    const [boardPart, cardPart] = last.split('@');
+    segments[segments.length - 1] = boardPart;
+    focusCardId = cardPart || null;
+  }
+  return { ids: segments, focusCardId };
+}
+
+function drillIntoBoard(id, sourceNodeId, targetFocusCardId) {
+  if (currentBoard) {
+    navPath.push({ id: currentBoard.id, name: currentBoard.name, focusNodeId: sourceNodeId || null });
+  }
+  const parts = navPath.map(p => p.id);
+  const lastSegment = targetFocusCardId ? id + '@' + targetFocusCardId : id;
+  parts.push(lastSegment);
+  location.hash = '#' + parts.join('/');
+}
+
+function navigateBreadcrumb(index) {
+  const target = navPath[index];
+  navPath = navPath.slice(0, index);
+  const parts = navPath.map(p => p.id);
+  const lastSegment = target.focusNodeId ? target.id + '@' + target.focusNodeId : target.id;
+  parts.push(lastSegment);
+  location.hash = '#' + parts.join('/');
+}
+
+let _navBusy = false;
+window.addEventListener('hashchange', async () => {
+  if (_navBusy) return;
+  _navBusy = true;
+  try {
+    const parsed = parseHash();
+    const ids = parsed.ids;
+    if (ids.length === 0) { _navBusy = false; return; }
+    const targetId = ids[ids.length - 1];
+    let focusNodeId = parsed.focusCardId || null;
+    const parentIds = ids.slice(0, -1);
+    const newPath = [];
+    for (let i = 0; i < parentIds.length; i++) {
+      const pid = parentIds[i];
+      const b = boards.find(b => b.id === pid);
+      const existing = navPath.find(p => p.id === pid);
+      newPath.push({ id: pid, name: b?.name || pid, focusNodeId: existing?.focusNodeId || null });
+    }
+    navPath = newPath;
+    await selectBoard(targetId, focusNodeId);
+  } finally {
+    _navBusy = false;
+  }
+});
+
+function renderBreadcrumb() {
+  const el = document.getElementById('breadcrumb');
+  if (navPath.length === 0) { el.style.display = 'none'; return; }
+  el.style.display = 'flex';
+  const backIdx = navPath.length - 1;
+  let html = `<span class="bc-back" onclick="navigateBreadcrumb(${backIdx})">← Volver</span>`;
+  navPath.forEach((b, i) => {
+    html += `<span class="bc-item" onclick="navigateBreadcrumb(${i})">${esc(b.name)}</span>`;
+    html += `<span class="bc-sep">›</span>`;
+  });
+  html += `<span class="bc-item bc-current">${esc(currentBoard?.name || '')}</span>`;
+  el.innerHTML = html;
+}
+
+async function selectBoard(id, focusNodeId) {
   currentBoard = await fetch(`${BAPI}/boards/${id}`).then(r => r.json());
   if (!currentBoard.cards) currentBoard.cards = [];
   if (!currentBoard.connections) currentBoard.connections = [];
   initParticles();
   await resolveAllRefs();
-  centerView();
+  if (focusNodeId) {
+    const node = currentBoard.cards.find(c => c.id === focusNodeId);
+    if (node) centerOnCard(node); else centerView();
+  } else {
+    centerView();
+  }
   renderBoardTabs();
   document.getElementById('boardName').value = currentBoard.name;
   document.getElementById('emptyState').style.display = currentBoard.cards.length === 0 ? 'block' : 'none';
   closePanel();
+  renderBreadcrumb();
 }
 
 async function resolveAllRefs() {
@@ -418,7 +535,7 @@ async function deleteBoard(id) {
 function renderBoardTabs() {
   const bar = document.getElementById('boardsBar');
   bar.innerHTML = boards.map(b =>
-    `<div class="bs-board-tab ${currentBoard && b.id === currentBoard.id ? 'active' : ''}" onclick="selectBoard('${b.id}')">
+    `<div class="bs-board-tab ${currentBoard && b.id === currentBoard.id ? 'active' : ''}" onclick="navPath=[];location.hash='#'+'${b.id}'">
       ${esc(b.name)} <span class="tab-count">${b.cardCount || 0}</span>
     </div>`
   ).join('') + `<button class="bs-add-board" onclick="createBoard()">+ Board</button>`;
@@ -1131,13 +1248,8 @@ async function navigateToRef(parentCard, refIndex) {
       setTimeout(() => openPanel(target), 450);
     }
   } else {
-    // Different board - switch board, then center on target card
-    await selectBoard(ref.boardId);
-    const target = currentBoard.cards.find(c => c.id === ref.cardId);
-    if (target) {
-      centerOnCard(target);
-      setTimeout(() => openPanel(target), 450);
-    }
+    // Different board - drill into it and center on the target card
+    drillIntoBoard(ref.boardId, parentCard.id, ref.cardId);
   }
 }
 
