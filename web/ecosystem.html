@@ -1252,7 +1252,7 @@ async function openRefPicker() {
       });
     } else {
       const full = await fetch(`${ECO_BAPI}/boards/${b.id}`).then(r => r.json());
-      (full.cards || []).forEach(c => {
+      (full.cards || full.nodes || []).forEach(c => {
         refPickerAllCards.push({ boardId: b.id, boardName: b.name, cardId: c.id, title: c.name||c.title, summary: c.description||c.summary, color: c.color });
       });
     }
