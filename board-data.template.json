@@ -1,0 +1,17 @@
+{
+  "tasks": [],
+  "projects": [],
+  "ecosystem": {
+    "boards": [
+      {
+        "id": "root",
+        "name": "Mi Holding",
+        "nodes": [],
+        "connections": []
+      }
+    ]
+  },
+  "brainstorm": {
+    "boards": []
+  }
+}

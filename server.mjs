@@ -166,7 +166,45 @@ export default async function handler(req, res) {
     }
 
     // GET /api/projects
-    if (path === '/api/projects') return json(res, 200, data.projects);
+    if (path === '/api/projects' && req.method === 'GET') return json(res, 200, data.projects);
+
+    // POST /api/projects
+    if (path === '/api/projects' && req.method === 'POST') {
+      const body = await readBody(req);
+      const name = (body.name || '').trim();
+      if (!name) return json(res, 400, { error: 'name required' });
+      if (data.projects.includes(name)) return json(res, 409, { error: 'already exists' });
+      data.projects.push(name);
+      data.projects.sort((a, b) => a.localeCompare(b));
+      saveData(data);
+      return json(res, 201, data.projects);
+    }
+
+    // PUT /api/projects/:name (rename)
+    if (path.startsWith('/api/projects/') && req.method === 'PUT') {
+      const oldName = decodeURIComponent(path.split('/api/projects/')[1]);
+      const idx = data.projects.indexOf(oldName);
+      if (idx === -1) return json(res, 404, { error: 'not found' });
+      const body = await readBody(req);
+      const newName = (body.name || '').trim();
+      if (!newName) return json(res, 400, { error: 'name required' });
+      data.projects[idx] = newName;
+      data.projects.sort((a, b) => a.localeCompare(b));
+      // Update tasks referencing old name
+      data.tasks.filter(t => t.project === oldName).forEach(t => t.project = newName);
+      saveData(data);
+      return json(res, 200, data.projects);
+    }
+
+    // DELETE /api/projects/:name
+    if (path.startsWith('/api/projects/') && req.method === 'DELETE') {
+      const name = decodeURIComponent(path.split('/api/projects/')[1]);
+      const idx = data.projects.indexOf(name);
+      if (idx === -1) return json(res, 404, { error: 'not found' });
+      data.projects.splice(idx, 1);
+      saveData(data);
+      return json(res, 200, data.projects);
+    }
 
     // GET /api/agents
     if (path === '/api/agents') return json(res, 200, data.agents);

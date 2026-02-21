@@ -270,10 +270,8 @@ canvas#bsCanvas.connecting { cursor: crosshair; }
           <div><label>Stage</label><select id="spStage"><option value="idea">Idea</option><option value="desarrollo">Desarrollo</option><option value="mvp">MVP</option><option value="activo">Activo</option><option value="escalando">Escalando</option><option value="escritura">Escritura</option><option value="pausado">Pausado</option></select></div>
           <div><label>Revenue</label><input type="text" id="spRevenue" placeholder="Pre-revenue, $2k/mo..."></div>
         </div>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
-          <div><label>Agente</label><input type="text" id="spAgent" placeholder="QualIA, InfraQual-IA..."></div>
-          <div><label>Proyecto asociado</label><input type="text" id="spProject" placeholder="Nombre en board..."></div>
-        </div>
+        <label>Agente</label>
+        <input type="text" id="spAgent" placeholder="QualIA, InfraQual-IA...">
         <label>Objetivo</label>
         <textarea id="spObj" style="min-height:60px"></textarea>
         <label>Notas</label>
@@ -281,20 +279,15 @@ canvas#bsCanvas.connecting { cursor: crosshair; }
         <label>Metricas</label>
         <div id="spMetrics" class="sp-tags-wrap"></div>
         <div class="sp-tag-add"><input type="text" id="spMetricLabel" placeholder="Label..."><input type="text" id="spMetricVal" placeholder="Valor..."><button id="spMetricAdd">+</button></div>
-        <label>Iniciativas</label>
-        <div id="spInits" class="sp-tags-wrap"></div>
-        <div class="sp-tag-add"><input type="text" id="spInitInput" placeholder="Nueva iniciativa..."><button id="spInitAdd">+</button></div>
-        <label id="spTaskLabel">Tareas</label>
-        <div id="spTaskList" class="sp-conns" style="max-height:200px;overflow-y:auto"></div>
-        <a id="spTaskLink" href="#" style="display:none;margin-top:6px;font-size:0.78rem;color:var(--gold);text-decoration:none">Ver en Proyectos &rarr;</a>
+        <label>Proyecto asociado</label>
+        <div id="spProjectWrap"></div>
+        <div id="spTaskSection" style="display:none">
+          <label id="spTaskLabel">Tareas</label>
+          <div id="spTaskList" class="sp-conns" style="max-height:200px;overflow-y:auto"></div>
+          <a id="spTaskLink" href="#" style="display:none;margin-top:6px;font-size:0.78rem;color:var(--gold);text-decoration:none">Ver en Proyectos &rarr;</a>
+        </div>
         <label>Color</label>
         <div class="color-row" id="spColors"></div>
-        <label>Tags</label>
-        <div class="sp-tags-wrap" id="spTags"></div>
-        <div class="sp-tag-add">
-          <input type="text" id="spTagInput" placeholder="Nuevo tag...">
-          <button id="spTagAdd">+ Tag</button>
-        </div>
         <label>Sub-nodos</label>
         <div class="sp-conns" id="spRefs"></div>
         <button id="spAddRef" style="margin-top:6px;background:var(--gold-dim);color:var(--gold);border:none;padding:8px 14px;border-radius:var(--radius-sm);cursor:pointer;font-family:var(--font-body);font-size:0.78rem;font-weight:600;transition:all .2s;width:100%">+ Agregar sub-nodo</button>
@@ -350,7 +343,7 @@ let scale = 1, panX = 0, panY = 0;
 let dragCard = null, dragOffX = 0, dragOffY = 0, didDrag = false;
 let isPanning = false, panSX = 0, panSY = 0, panSPX = 0, panSPY = 0;
 let selectedCard = null, hoverCard = null, hoverConn = null, selectedConn = null;
-let hoverRef = null; // {card, refIndex} when hovering over a sub-card row
+let hoverRef = null, hoverProject = null; // {card, refIndex} when hovering over a sub-card row
 let connectMode = false, connectFrom = null, connectMX = null, connectMY = null;
 let particles = [];
 let time = 0, saveTimer = null, connSaveTimer = null;
@@ -443,10 +436,19 @@ function renderBoardTabs() {
 }
 
 function centerView() {
-  if (!currentBoard || currentBoard.cards.length === 0) { panX = 0; panY = 0; return; }
-  const cx = currentBoard.cards.reduce((s, c) => s + c.x, 0) / currentBoard.cards.length + CARD_W / 2;
-  const cy = currentBoard.cards.reduce((s, c) => s + c.y, 0) / currentBoard.cards.length + CARD_H / 2;
-  panX = W / 2 - cx * scale; panY = H / 2 - cy * scale;
+  if (!currentBoard || currentBoard.cards.length === 0) { panX = 0; panY = 0; scale = 1; return; }
+  const xs = currentBoard.cards.map(c => c.x);
+  const ys = currentBoard.cards.map(c => c.y);
+  const minX = Math.min(...xs), maxX = Math.max(...xs) + CARD_W;
+  const minY = Math.min(...ys), maxY = Math.max(...ys) + CARD_H;
+  const contentW = maxX - minX || 1, contentH = maxY - minY || 1;
+  const pad = 80;
+  scale = Math.min(1.2, (W - pad * 2) / contentW, (H - pad * 2) / contentH);
+  scale = Math.max(0.15, scale);
+  const cx = (minX + maxX) / 2, cy = (minY + maxY) / 2;
+  panX = W / 2 - cx * scale;
+  panY = H / 2 - cy * scale;
+  document.getElementById('zoomLabel').textContent = Math.round(scale * 100) + '%';
 }
 
 // --- Particles ---
@@ -459,9 +461,13 @@ function initParticles() {
 }
 
 // Card total height including sub-card rows
+const PROJECT_ROW_H = 28;
 function cardTotalH(c) {
   const refs = c.refs || [];
-  return CARD_H + (refs.length > 0 ? 4 + refs.length * SUB_ROW_H + 8 : 0);
+  let h = CARD_H;
+  if (c.projectName) h += PROJECT_ROW_H + 4;
+  if (refs.length > 0) h += 4 + refs.length * SUB_ROW_H + 8;
+  return h;
 }
 
 // --- Connection hit testing ---
@@ -658,19 +664,6 @@ function drawCards() {
       });
     }
 
-    // Tags row
-    const tags = c.tags || [];
-    if (tags.length > 0) {
-      const tagY = sepY + (metrics.length>0?44:14)*s; let tx = cx_;
-      ctx.font = `600 ${Math.max(6,7.5*s)}px Figtree, sans-serif`;
-      tags.slice(0, 4).forEach(tag => {
-        const tw = ctx.measureText(tag).width + 10*s; if (tx+tw > x+w-pad) return;
-        ctx.fillStyle = hex2rgba(color, 0.08); rr(tx, tagY-7*s, tw, 14*s, 7*s); ctx.fill();
-        ctx.fillStyle = hex2rgba(color, 0.55); ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
-        ctx.fillText(tag, tx+5*s, tagY); tx += tw + 4*s;
-      });
-    }
-
     // Active pulse dot
     if (c.active !== false) {
       const dx=x+w-8*s, dy=y+8*s, dp=2.5+Math.sin(t/600)*0.8;
@@ -690,9 +683,37 @@ function drawCards() {
       ctx.fillText(connCount, bx, by);
     }
 
+    // --- Project association row ---
+    let projectRowY = null;
+    if (c.projectName) {
+      const prY = y + (CARD_H - 6) * s;
+      projectRowY = prY;
+      ctx.strokeStyle = 'rgba(255,255,255,0.06)'; ctx.lineWidth = 1;
+      ctx.beginPath(); ctx.moveTo(x + 10*s, prY); ctx.lineTo(x + w - 10*s, prY); ctx.stroke();
+      const rowH = PROJECT_ROW_H * s;
+      const isHover = hoverProject === c;
+      if (isHover) { ctx.fillStyle = 'rgba(201,169,78,0.06)'; rr(x+4*s, prY+2*s, w-8*s, rowH, 4*s); ctx.fill(); }
+      // Folder icon
+      const ix = cx_ + 2*s, iy = prY + 2*s + rowH/2;
+      ctx.save(); ctx.strokeStyle = isHover ? 'var(--gold,#c9a94e)' : 'rgba(201,169,78,0.5)'; ctx.lineWidth = 1.2*s;
+      const is = 5*s;
+      ctx.beginPath(); ctx.moveTo(ix-is,iy-is*.6); ctx.lineTo(ix-is,iy+is*.6); ctx.lineTo(ix+is,iy+is*.6); ctx.lineTo(ix+is,iy-is*.3); ctx.lineTo(ix+is*.2,iy-is*.3); ctx.lineTo(ix,iy-is*.6); ctx.closePath(); ctx.stroke();
+      ctx.restore();
+      // Project name
+      ctx.font = `600 ${Math.max(7,9*s)}px Figtree, sans-serif`;
+      ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
+      ctx.fillStyle = isHover ? '#c9a94e' : 'rgba(201,169,78,0.7)';
+      ctx.fillText(truncT(c.projectName, cw - 40*s), cx_ + 16*s, iy);
+      // Arrow
+      ctx.fillStyle = isHover ? '#c9a94e' : 'rgba(201,169,78,0.35)';
+      ctx.font = `400 ${Math.max(8,10*s)}px Figtree, sans-serif`;
+      ctx.textAlign = 'right';
+      ctx.fillText('>', x + w - pad, iy);
+    }
+
     // --- Sub-card rows integrated inside card ---
     if (refs.length > 0) {
-      const sepY = y + (CARD_H - 6) * s;
+      const sepY = y + (CARD_H - 6 + (c.projectName ? PROJECT_ROW_H : 0)) * s;
       // Separator line
       ctx.strokeStyle = 'rgba(255,255,255,0.06)'; ctx.lineWidth = 1;
       ctx.beginPath(); ctx.moveTo(x + 10*s, sepY); ctx.lineTo(x + w - 10*s, sepY); ctx.stroke();
@@ -769,6 +790,19 @@ function cardAt(sx, sy) {
 }
 
 // Returns {card, refIndex} if mouse is over a sub-card row, or null
+function projectRowAt(sx, sy) {
+  if (!currentBoard) return null;
+  const [wx, wy] = toWorld(sx, sy);
+  for (let i = currentBoard.cards.length - 1; i >= 0; i--) {
+    const c = currentBoard.cards[i];
+    if (!c.projectName) continue;
+    if (wx < c.x || wx > c.x + CARD_W) continue;
+    const prY = c.y + CARD_H - 6;
+    if (wy >= prY && wy < prY + PROJECT_ROW_H + 4) return c;
+  }
+  return null;
+}
+
 function refRowAt(sx, sy) {
   if (!currentBoard) return null;
   const [wx, wy] = toWorld(sx, sy);
@@ -777,8 +811,8 @@ function refRowAt(sx, sy) {
     const refs = c.refs || [];
     if (refs.length === 0) continue;
     if (wx < c.x || wx > c.x + CARD_W) continue;
-    // Sub-rows start at CARD_H - 6 + 4 = CARD_H - 2
-    const rowStartY = c.y + CARD_H - 2;
+    const projOffset = c.projectName ? PROJECT_ROW_H : 0;
+    const rowStartY = c.y + CARD_H - 2 + projOffset;
     for (let ri = 0; ri < refs.length; ri++) {
       const ry = rowStartY + ri * SUB_ROW_H;
       if (wy >= ry && wy < ry + SUB_ROW_H) return { card: c, refIndex: ri };
@@ -804,12 +838,11 @@ function bindEvents() {
       }
       return;
     }
-    // Check if clicking a sub-card row
+    // Check if clicking a project row or sub-card row — don't start drag
+    const projHit = projectRowAt(sx, sy);
+    if (projHit) return;
     const refHit = refRowAt(sx, sy);
-    if (refHit) {
-      // Will handle navigation on mouseup
-      return;
-    }
+    if (refHit) return;
     if (c) {
       dragCard = c; didDrag = false;
       dragOffX = sx/scale - c.x - panX/scale;
@@ -833,16 +866,23 @@ function bindEvents() {
       if (Math.abs(e.clientX - panSX) > 3 || Math.abs(e.clientY - panSY) > 3) didDrag = true;
       panX = panSPX + (e.clientX - panSX); panY = panSPY + (e.clientY - panSY);
     } else {
-      // Check sub-card rows first (they're inside the card area)
-      const rr_ = refRowAt(sx, sy);
-      if (rr_) {
-        hoverRef = rr_; hoverCard = null; hoverConn = null;
+      // Check project row first, then sub-card rows, then card, then connection
+      const pr_ = projectRowAt(sx, sy);
+      if (pr_) {
+        hoverProject = pr_; hoverRef = null; hoverCard = null; hoverConn = null;
         canvas.style.cursor = 'pointer';
       } else {
-        hoverRef = null;
-        const c = cardAt(sx, sy);
-        if (c) { hoverCard = c; hoverConn = null; canvas.style.cursor = 'pointer'; }
-        else { hoverCard = null; const cn = connAt(sx, sy); hoverConn = cn; canvas.style.cursor = cn ? 'pointer' : 'grab'; }
+        hoverProject = null;
+        const rr_ = refRowAt(sx, sy);
+        if (rr_) {
+          hoverRef = rr_; hoverCard = null; hoverConn = null;
+          canvas.style.cursor = 'pointer';
+        } else {
+          hoverRef = null;
+          const c = cardAt(sx, sy);
+          if (c) { hoverCard = c; hoverConn = null; canvas.style.cursor = 'pointer'; }
+          else { hoverCard = null; const cn = connAt(sx, sy); hoverConn = cn; canvas.style.cursor = cn ? 'pointer' : 'grab'; }
+        }
       }
     }
   });
@@ -850,12 +890,22 @@ function bindEvents() {
   canvas.addEventListener('mouseup', e => {
     const rect = canvas.getBoundingClientRect();
     const sx = e.clientX - rect.left, sy = e.clientY - rect.top;
-    // Check sub-card row click first
-    const refHit = refRowAt(sx, sy);
-    if (refHit) {
-      navigateToRef(refHit.card, refHit.refIndex);
-      isPanning = false; didDrag = false; canvas.classList.remove('dragging');
-      return;
+    // Check project row click
+    if (!connectMode) {
+      // Check project row click
+      const projHit = projectRowAt(sx, sy);
+      if (projHit && !didDrag) {
+        window.location.href = 'projects?project=' + encodeURIComponent(projHit.projectName);
+        isPanning = false; didDrag = false; canvas.classList.remove('dragging');
+        return;
+      }
+      // Check sub-card row click
+      const refHit = refRowAt(sx, sy);
+      if (refHit) {
+        navigateToRef(refHit.card, refHit.refIndex);
+        isPanning = false; didDrag = false; canvas.classList.remove('dragging');
+        return;
+      }
     }
     if (dragCard) {
       saveCardPos(dragCard);
@@ -886,8 +936,6 @@ function bindEvents() {
   });
   document.getElementById('btnReset').addEventListener('click', () => { centerView(); scale = 1; document.getElementById('zoomLabel').textContent = '100%'; });
   document.getElementById('spClose').addEventListener('click', closePanel);
-  document.getElementById('spTagAdd').addEventListener('click', addTag);
-  document.getElementById('spTagInput').addEventListener('keydown', e => { if (e.key === 'Enter') addTag(); });
   document.getElementById('boardName').addEventListener('change', renameboard);
   document.getElementById('cpClose').addEventListener('click', closeConnPanel);
   document.getElementById('cpDelete').addEventListener('click', deleteConn);
@@ -904,12 +952,11 @@ function bindEvents() {
   document.addEventListener('click', () => { optsMenu.classList.remove('open'); optsBtn.classList.remove('open'); });
   optsMenu.addEventListener('click', e => e.stopPropagation());
 
-  ['spName','spDesc','spStage','spRevenue','spAgent','spProject','spObj','spNotes'].forEach(id => {
+  ['spName','spDesc','spStage','spRevenue','spAgent','spObj','spNotes'].forEach(id => {
     document.getElementById(id).addEventListener('input', scheduleSave);
   });
+  document.getElementById('spStage').addEventListener('change', scheduleSave);
   document.getElementById('spMetricAdd').addEventListener('click', addMetric);
-  document.getElementById('spInitAdd').addEventListener('click', addInit);
-  document.getElementById('spInitInput').addEventListener('keydown', e => { if(e.key==='Enter') addInit(); });
 }
 
 // --- Card Panel ---
@@ -944,24 +991,50 @@ function addMetric() {
 }
 window.removeMetric = function(i) { if(!selectedCard) return; selectedCard.metrics.splice(i,1); renderMetrics(); scheduleSave(); };
 
-function renderInits() {
-  if(!selectedCard) return;
-  const el = document.getElementById('spInits');
-  const statusC = {pending:'var(--text-tertiary)',active:'var(--green)',done:'var(--gold)',blocked:'var(--red)'};
-  el.innerHTML = (selectedCard.initiatives||[]).map((init,i) => {
-    const sc = statusC[init.status||'pending']||'var(--text-tertiary)';
-    return `<span class="sp-tag" style="border-left:3px solid ${sc};padding-left:8px;cursor:pointer" onclick="cycleInit(${i})">${esc(init.title||'')}<button onclick="event.stopPropagation();removeInit(${i})">x</button></span>`;
-  }).join('') || '<span style="color:var(--text-tertiary);font-size:0.72rem">Sin iniciativas</span>';
+async function renderProjectAssoc(c) {
+  const wrap = document.getElementById('spProjectWrap');
+  const taskSection = document.getElementById('spTaskSection');
+  if (c.projectName) {
+    wrap.innerHTML = `<div class="sp-conn-item" style="border-left:3px solid var(--gold);padding-left:10px;margin:4px 0">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--gold)" stroke-width="2" style="flex-shrink:0"><rect x="2" y="3" width="20" height="18" rx="2"/><path d="M8 7h8M8 12h8M8 17h4"/></svg>
+      <strong style="flex:1">${esc(c.projectName)}</strong>
+      <span class="del" onclick="unlinkProject()" style="opacity:0.6;cursor:pointer;color:var(--red);font-size:14px" title="Des-asociar">x</span>
+    </div>`;
+    taskSection.style.display = 'block';
+    await ensureTasks();
+    renderTaskList(c);
+  } else {
+    wrap.innerHTML = `<button onclick="openProjectPicker()" style="margin-top:4px;background:var(--gold-dim);color:var(--gold);border:none;padding:8px 14px;border-radius:var(--radius-sm);cursor:pointer;font-family:var(--font-body);font-size:0.78rem;font-weight:600;transition:all .2s;width:100%">+ Asociar proyecto</button>`;
+    taskSection.style.display = 'none';
+  }
 }
-function addInit() {
-  if(!selectedCard) return;
-  const input=document.getElementById('spInitInput'), val=input.value.trim(); if(!val) return;
-  if(!selectedCard.initiatives) selectedCard.initiatives=[];
-  selectedCard.initiatives.push({title:val,status:'pending'}); input.value='';
-  renderInits(); scheduleSave();
-}
-window.cycleInit = function(i) { if(!selectedCard) return; const next={pending:'active',active:'done',done:'blocked',blocked:'pending'}; selectedCard.initiatives[i].status=next[selectedCard.initiatives[i].status||'pending']; renderInits(); scheduleSave(); };
-window.removeInit = function(i) { if(!selectedCard) return; selectedCard.initiatives.splice(i,1); renderInits(); scheduleSave(); };
+
+window.unlinkProject = function() {
+  if (!selectedCard) return;
+  selectedCard.projectName = '';
+  renderProjectAssoc(selectedCard);
+  scheduleSave();
+};
+
+window.openProjectPicker = async function() {
+  let projects = [];
+  try { projects = await fetch('api/projects').then(r => r.json()); } catch(e) {}
+  const wrap = document.getElementById('spProjectWrap');
+  wrap.innerHTML = `<div style="margin-top:4px">
+    <div style="display:flex;flex-direction:column;gap:2px;max-height:200px;overflow-y:auto;background:var(--bg-base);border:1px solid var(--border);border-radius:var(--radius-sm);padding:6px">
+      ${projects.map(p => `<div class="sp-conn-item" style="cursor:pointer;padding:8px 10px" onclick="pickProject('${esc(p)}')">${esc(p)}</div>`).join('')}
+      ${projects.length === 0 ? '<span style="color:var(--text-tertiary);font-size:0.78rem;padding:8px 10px">Sin proyectos disponibles</span>' : ''}
+    </div>
+    <button onclick="renderProjectAssoc(selectedCard)" style="margin-top:6px;background:none;border:1px solid var(--border);color:var(--text-tertiary);padding:6px 12px;border-radius:var(--radius-sm);cursor:pointer;font-family:var(--font-body);font-size:0.72rem;width:100%">Cancelar</button>
+  </div>`;
+};
+
+window.pickProject = function(name) {
+  if (!selectedCard) return;
+  selectedCard.projectName = name;
+  renderProjectAssoc(selectedCard);
+  scheduleSave();
+};
 
 function renderTaskList(n) {
   const tasks = getNodeTasks(n);
@@ -986,14 +1059,11 @@ async function openPanel(c) {
   document.getElementById('spStage').value = c.stage || 'idea';
   document.getElementById('spRevenue').value = c.revenue || '';
   document.getElementById('spAgent').value = c.agent || '';
-  document.getElementById('spProject').value = c.projectName || '';
   document.getElementById('spObj').value = c.objective || '';
   document.getElementById('spNotes').value = c.notes || '';
   renderColorSwatches(c.color);
   renderMetrics();
-  renderInits();
-  renderTaskList(c);
-  renderTags();
+  renderProjectAssoc(c);
   renderRefs();
   renderConns();
   // Footer
@@ -1010,22 +1080,6 @@ function renderColorSwatches(active) {
   ).join('');
 }
 window.pickColor = function(c) { if (!selectedCard) return; selectedCard.color = c; renderColorSwatches(c); scheduleSave(); };
-
-function renderTags() {
-  if (!selectedCard) return;
-  document.getElementById('spTags').innerHTML = (selectedCard.tags||[]).map((t,i) =>
-    `<span class="sp-tag">${esc(t)}<button onclick="removeTag(${i})">x</button></span>`
-  ).join('');
-}
-function addTag() {
-  if (!selectedCard) return;
-  const input = document.getElementById('spTagInput'), val = input.value.trim();
-  if (!val) return;
-  if (!selectedCard.tags) selectedCard.tags = [];
-  selectedCard.tags.push(val); input.value = '';
-  renderTags(); scheduleSave();
-}
-window.removeTag = function(i) { if (!selectedCard) return; selectedCard.tags.splice(i, 1); renderTags(); scheduleSave(); };
 
 function renderRefs() {
   if (!selectedCard) return;
@@ -1091,13 +1145,11 @@ async function savePanel() {
     stage: document.getElementById('spStage').value,
     revenue: document.getElementById('spRevenue').value,
     agent: document.getElementById('spAgent').value,
-    projectName: document.getElementById('spProject').value,
+    projectName: selectedCard.projectName || '',
     objective: document.getElementById('spObj').value,
     notes: document.getElementById('spNotes').value,
     color: selectedCard.color,
-    tags: selectedCard.tags || [],
     metrics: selectedCard.metrics || [],
-    initiatives: selectedCard.initiatives || [],
   };
   Object.assign(selectedCard, body);
   document.getElementById('spTitle').textContent = body.name || 'Nodo';
