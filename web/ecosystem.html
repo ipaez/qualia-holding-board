@@ -204,6 +204,12 @@ canvas#ecoCanvas.connecting { cursor: crosshair; }
             </div>
           </div>
         </div>
+        <label>Proyecto padre</label>
+        <select id="spParent">
+          <option value="">(Ninguno - proyecto raiz)</option>
+        </select>
+        <label>Sub-proyectos</label>
+        <div id="spSubProjects" class="sp-init-list"></div>
         <label>Tags</label>
         <div id="spTagsWrap" class="sp-tags-input"></div>
         <div style="display:flex;gap:6px;margin-top:8px">
@@ -268,6 +274,7 @@ const CONN_LABELS = { 'client-flow': 'Flujo de clientes', dependency: 'Dependenc
 const STAGE_COLORS = { idea: '#888', desarrollo: '#3498db', mvp: '#e67e22', activo: '#2ecc71', escalando: '#c9a94e', escritura: '#9b59b6', pausado: '#555' };
 const STAGE_LABELS = { idea: 'IDEA', desarrollo: 'DEV', mvp: 'MVP', activo: 'ACTIVO', escalando: 'SCALE', escritura: 'ESCR', pausado: 'PAUSA' };
 const INIT_ROW_H = 24;
+const SUB_ROW_H = 28;
 
 let nodes = [], connections = [], tasks = [];
 let canvas, ctx, W, H, dpr;
@@ -279,13 +286,20 @@ let connectMode = false, connectFrom = null;
 let particles = [];
 let time = 0;
 let saveTimer = null, connSaveTimer = null;
-let hoverNode = null, hoverConn = null, hoverInit = null;
+let hoverNode = null, hoverConn = null, hoverInit = null, hoverSub = null;
 
 const NODE_W = 260, NODE_BASE_H = 170, NODE_R = 14;
 
+function getChildren(n) { return nodes.filter(c => c.parentId === n.id); }
+function isRoot(n) { return !n.parentId; }
+
 function nodeTotalH(n) {
   const inits = n.initiatives || [];
-  return NODE_BASE_H + (inits.length > 0 ? 6 + inits.length * INIT_ROW_H + 8 : 0);
+  const children = getChildren(n);
+  let h = NODE_BASE_H;
+  if (children.length > 0) h += 18 + children.length * SUB_ROW_H + 8;
+  if (inits.length > 0) h += 18 + inits.length * INIT_ROW_H + 8;
+  return h;
 }
 
 async function init() {
@@ -381,15 +395,39 @@ function connAt(sx, sy) {
   return null;
 }
 
+// --- Sub-project row hit test ---
+function subRowAt(sx, sy) {
+  const [wx, wy] = toWorld(sx, sy);
+  for (let i = nodes.length - 1; i >= 0; i--) {
+    const n = nodes[i];
+    if (!isRoot(n)) continue;
+    const children = getChildren(n);
+    if (children.length === 0) continue;
+    if (wx < n.x || wx > n.x + NODE_W) continue;
+    // Sub-projects start at NODE_BASE_H - 4 + 14 = NODE_BASE_H + 10
+    const rowStartY = n.y + NODE_BASE_H + 10;
+    for (let ri = 0; ri < children.length; ri++) {
+      const ry = rowStartY + ri * SUB_ROW_H;
+      if (wy >= ry && wy < ry + SUB_ROW_H) return { node: n, childIndex: ri, child: children[ri] };
+    }
+  }
+  return null;
+}
+
 // --- Initiative row hit test ---
 function initRowAt(sx, sy) {
   const [wx, wy] = toWorld(sx, sy);
   for (let i = nodes.length - 1; i >= 0; i--) {
     const n = nodes[i];
+    if (!isRoot(n)) continue;
     const inits = n.initiatives || [];
     if (inits.length === 0) continue;
     if (wx < n.x || wx > n.x + NODE_W) continue;
-    const rowStartY = n.y + NODE_BASE_H;
+    const children = getChildren(n);
+    // Initiatives start after sub-projects section
+    let rowStartY = n.y + NODE_BASE_H;
+    if (children.length > 0) rowStartY += 18 + children.length * SUB_ROW_H + 12;
+    else rowStartY += 14;
     for (let ri = 0; ri < inits.length; ri++) {
       const ry = rowStartY + ri * INIT_ROW_H;
       if (wy >= ry && wy < ry + INIT_ROW_H) return { node: n, initIndex: ri };
@@ -481,7 +519,8 @@ function drawConnections() {
 // --- Node Cards ---
 function drawNodes() {
   const t = time;
-  nodes.forEach(n => {
+  // Only draw root nodes (children are rendered inside parents)
+  nodes.filter(isRoot).forEach(n => {
     const totalH = nodeTotalH(n);
     const [x, y] = toScreen(n.x, n.y);
     const w = NODE_W * scale, h = totalH * scale, baseH = NODE_BASE_H * scale, r = NODE_R * scale;
@@ -647,10 +686,65 @@ function drawNodes() {
       ctx.fillStyle = '#34d399'; ctx.fill();
     }
 
+    // --- Sub-project rows ---
+    const children = getChildren(n);
+    let sectionY = y + (NODE_BASE_H - 4) * s;
+
+    if (children.length > 0) {
+      ctx.strokeStyle = 'rgba(255,255,255,0.06)'; ctx.lineWidth = 1;
+      ctx.beginPath(); ctx.moveTo(x + 10 * s, sectionY); ctx.lineTo(x + w - 10 * s, sectionY); ctx.stroke();
+
+      ctx.font = `700 ${Math.max(5, 6.5 * s)}px Outfit, sans-serif`;
+      ctx.fillStyle = 'rgba(255,255,255,0.2)';
+      ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
+      ctx.fillText('SUB-PROYECTOS', contentX, sectionY + 8 * s);
+
+      let rowY = sectionY + 14 * s;
+      children.forEach((child, idx) => {
+        const rowH = SUB_ROW_H * s;
+        const isRowHover = hoverSub && hoverSub.node === n && hoverSub.childIndex === idx;
+
+        if (isRowHover) {
+          ctx.fillStyle = 'rgba(255,255,255,0.06)';
+          rr(x + 4 * s, rowY, w - 8 * s, rowH, 4 * s); ctx.fill();
+        }
+
+        // Color dot
+        const cc = child.color || '#888';
+        ctx.beginPath(); ctx.arc(contentX + 5 * s, rowY + rowH / 2, 4 * s, 0, Math.PI * 2);
+        ctx.fillStyle = hex2rgba(cc, 0.25); ctx.fill();
+        ctx.beginPath(); ctx.arc(contentX + 5 * s, rowY + rowH / 2, 2.5 * s, 0, Math.PI * 2);
+        ctx.fillStyle = cc; ctx.fill();
+
+        // Name
+        ctx.font = `600 ${Math.max(7, 9.5 * s)}px Figtree, sans-serif`;
+        ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
+        ctx.fillStyle = isRowHover ? '#fff' : 'rgba(255,255,255,0.7)';
+        ctx.fillText(truncText(child.name || '', contentW - 70 * s), contentX + 14 * s, rowY + rowH / 2);
+
+        // Stage badge
+        if (child.stage) {
+          const sc = STAGE_COLORS[child.stage] || '#888';
+          const sl = STAGE_LABELS[child.stage] || child.stage.toUpperCase();
+          ctx.font = `700 ${Math.max(5, 6.5 * s)}px Outfit, sans-serif`;
+          const sw = ctx.measureText(sl).width + 8 * s;
+          ctx.fillStyle = hex2rgba(sc, 0.15);
+          rr(x + w - pad - sw, rowY + (rowH - 12 * s) / 2, sw, 12 * s, 6 * s); ctx.fill();
+          ctx.fillStyle = sc;
+          ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+          ctx.fillText(sl, x + w - pad - sw / 2, rowY + rowH / 2);
+        }
+
+        rowY += rowH;
+      });
+
+      sectionY = rowY + 4 * s;
+    }
+
     // --- Initiative rows integrated inside card ---
     const inits = n.initiatives || [];
     if (inits.length > 0) {
-      const initSepY = y + (NODE_BASE_H - 4) * s;
+      const initSepY = children.length > 0 ? sectionY : sectionY;
       ctx.strokeStyle = 'rgba(255,255,255,0.06)'; ctx.lineWidth = 1;
       ctx.beginPath(); ctx.moveTo(x + 10 * s, initSepY); ctx.lineTo(x + w - 10 * s, initSepY); ctx.stroke();
 
@@ -744,6 +838,7 @@ function nodeAt(sx, sy) {
   const [wx, wy] = toWorld(sx, sy);
   for (let i = nodes.length - 1; i >= 0; i--) {
     const n = nodes[i];
+    if (!isRoot(n)) continue;
     const th = nodeTotalH(n);
     if (wx >= n.x && wx <= n.x + NODE_W && wy >= n.y && wy <= n.y + th) return n;
   }
@@ -793,16 +888,23 @@ function bindEvents() {
       panX = panStartPX + (e.clientX - panStartX);
       panY = panStartPY + (e.clientY - panStartY);
     } else {
-      // Check initiative rows first
-      const ir = initRowAt(sx, sy);
-      if (ir) {
-        hoverInit = ir; hoverNode = ir.node; hoverConn = null;
+      // Check sub-project rows first, then initiative rows
+      const sr = subRowAt(sx, sy);
+      if (sr) {
+        hoverSub = sr; hoverInit = null; hoverNode = sr.node; hoverConn = null;
         canvas.style.cursor = 'pointer';
       } else {
-        hoverInit = null;
-        const n = nodeAt(sx, sy);
-        if (n) { hoverNode = n; hoverConn = null; canvas.style.cursor = 'pointer'; }
-        else { hoverNode = null; const cn = connAt(sx, sy); hoverConn = cn; canvas.style.cursor = cn ? 'pointer' : 'grab'; }
+        hoverSub = null;
+        const ir = initRowAt(sx, sy);
+        if (ir) {
+          hoverInit = ir; hoverNode = ir.node; hoverConn = null;
+          canvas.style.cursor = 'pointer';
+        } else {
+          hoverInit = null;
+          const n = nodeAt(sx, sy);
+          if (n) { hoverNode = n; hoverConn = null; canvas.style.cursor = 'pointer'; }
+          else { hoverNode = null; const cn = connAt(sx, sy); hoverConn = cn; canvas.style.cursor = cn ? 'pointer' : 'grab'; }
+        }
       }
     }
   });
@@ -812,12 +914,21 @@ function bindEvents() {
     const sx = e.clientX - rect.left, sy = e.clientY - rect.top;
     if (dragNode) {
       saveNodePos(dragNode);
-      if (!didDrag) openPanel(dragNode);
+      if (!didDrag) {
+        // Check if clicked a sub-project row
+        const sr = subRowAt(sx, sy);
+        if (sr) { openPanel(sr.child); }
+        else { openPanel(dragNode); }
+      }
       dragNode = null;
     } else if (isPanning && !didDrag) {
-      // Check if clicked on a connection
-      const conn = connAt(sx, sy);
-      if (conn) openConnPanel(conn);
+      // Check sub-project row click
+      const sr = subRowAt(sx, sy);
+      if (sr) { openPanel(sr.child); }
+      else {
+        const conn = connAt(sx, sy);
+        if (conn) openConnPanel(conn);
+      }
     }
     isPanning = false;
     canvas.classList.remove('dragging');
@@ -878,6 +989,8 @@ function openPanel(n) {
   document.getElementById('spStage').value = n.stage || 'idea';
   document.getElementById('spRevenue').value = n.revenue || '';
   document.getElementById('spAgent').value = n.agent || '';
+  renderParentSelect();
+  renderSubProjects();
   renderTags();
   renderMetrics();
   renderInitiatives();
@@ -885,6 +998,35 @@ function openPanel(n) {
   document.getElementById('spTasks').textContent = count + ' tareas';
   renderNodeConns();
   document.getElementById('sidePanel').classList.add('open');
+}
+
+function renderParentSelect() {
+  if (!selectedNode) return;
+  const sel = document.getElementById('spParent');
+  // Can't be parent of itself or its own children
+  const excluded = new Set([selectedNode.id]);
+  getChildren(selectedNode).forEach(c => excluded.add(c.id));
+  sel.innerHTML = '<option value="">(Ninguno - proyecto raiz)</option>' +
+    nodes.filter(n => !excluded.has(n.id)).map(n =>
+      `<option value="${n.id}" ${n.id === selectedNode.parentId ? 'selected' : ''}>${esc(n.name)}</option>`
+    ).join('');
+  sel.onchange = () => { selectedNode.parentId = sel.value || null; scheduleSave(); };
+}
+
+function renderSubProjects() {
+  if (!selectedNode) return;
+  const children = getChildren(selectedNode);
+  const el = document.getElementById('spSubProjects');
+  if (!children.length) { el.innerHTML = '<span style="color:var(--text-tertiary);font-size:0.75rem">Sin sub-proyectos</span>'; return; }
+  el.innerHTML = children.map(c => {
+    const sc = STAGE_COLORS[c.stage] || '#888';
+    const sl = STAGE_LABELS[c.stage] || (c.stage || 'IDEA').toUpperCase();
+    return `<div class="sp-init-row" style="cursor:pointer" onclick="openPanel(nodes.find(n=>n.id==='${c.id}'))">
+      <div style="width:10px;height:10px;border-radius:50%;background:${c.color||'#888'};flex-shrink:0"></div>
+      <span style="flex:1;font-size:0.82rem;color:var(--text-primary)">${esc(c.name)}</span>
+      <span style="font-size:0.65rem;color:${sc};font-weight:700;font-family:var(--font-heading)">${sl}</span>
+    </div>`;
+  }).join('');
 }
 
 function renderNodeConns() {
@@ -1027,6 +1169,7 @@ async function savePanel() {
     tags: selectedNode.tags || [],
     metrics: selectedNode.metrics || [],
     initiatives: selectedNode.initiatives || [],
+    parentId: selectedNode.parentId || null,
   };
   Object.assign(selectedNode, body);
   document.getElementById('spTitle').textContent = body.name || 'Proyecto';

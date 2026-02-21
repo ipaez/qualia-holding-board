@@ -207,6 +207,7 @@ export default async function handler(req, res) {
         tags: body.tags || [],
         metrics: body.metrics || [],
         initiatives: body.initiatives || [],
+        parentId: body.parentId || null,
       };
       data.ecosystem.nodes.push(node);
       saveData(data);
@@ -219,7 +220,7 @@ export default async function handler(req, res) {
       const node = data.ecosystem.nodes.find(n => n.id === ecoNodeMatch[1]);
       if (!node) return json(res, 404, { error: 'Not found' });
       const body = await readBody(req);
-      for (const key of ['name','description','objective','notes','color','x','y','active','stage','revenue','agent','tags','metrics','initiatives']) {
+      for (const key of ['name','description','objective','notes','color','x','y','active','stage','revenue','agent','tags','metrics','initiatives','parentId']) {
         if (body[key] !== undefined) node[key] = body[key];
       }
       saveData(data);

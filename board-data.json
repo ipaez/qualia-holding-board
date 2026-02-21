@@ -2418,8 +2418,8 @@
         "objective": "",
         "notes": "",
         "color": "#c9a94e",
-        "x": 416,
-        "y": -117,
+        "x": 349,
+        "y": -303,
         "active": true,
         "stage": "activo",
         "revenue": "Personal",
@@ -2451,8 +2451,8 @@
         "objective": "",
         "notes": "",
         "color": "#3498db",
-        "x": -100,
-        "y": 67,
+        "x": 85,
+        "y": 52,
         "active": true,
         "stage": "mvp",
         "revenue": "Interno",
@@ -2582,8 +2582,8 @@
         "objective": "",
         "notes": "",
         "color": "#f39c12",
-        "x": 798,
-        "y": 110,
+        "x": 806,
+        "y": 80,
         "active": true,
         "stage": "escritura",
         "revenue": "Pre-venta",
@@ -2878,16 +2878,37 @@
             "color": "#3498db",
             "tags": [],
             "icon": "idea",
-            "x": 130,
-            "y": -242,
+            "x": 211,
+            "y": -467,
             "parentId": "c-947fe431",
             "children": [],
-            "refs": [
-              {
-                "boardId": "2a4f325e",
-                "cardId": "c-80c4d1cb"
-              }
-            ]
+            "refs": []
+          },
+          {
+            "id": "c-1cf96edc",
+            "title": "Prisma",
+            "summary": "",
+            "detail": "",
+            "source": "",
+            "color": "#c9a94e",
+            "tags": [],
+            "icon": "idea",
+            "x": 648,
+            "y": -247,
+            "refs": []
+          },
+          {
+            "id": "c-da47ff41",
+            "title": "SaaS Qualia",
+            "summary": "",
+            "detail": "",
+            "source": "",
+            "color": "#c9a94e",
+            "tags": [],
+            "icon": "idea",
+            "x": -261,
+            "y": -253,
+            "refs": []
           }
         ],
         "connections": [],
