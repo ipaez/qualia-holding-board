@@ -233,7 +233,7 @@ canvas#ecoCanvas.connecting { cursor: crosshair; }
 </div>
 
 <script>
-const API = 'api/ecosystem';
+const ECO_API = 'api/ecosystem';
 const CONN_COLORS = { 'client-flow': '#2ecc71', dependency: '#3498db', 'content-flow': '#c9a94e', revenue: '#e67e22', strategic: '#9b59b6' };
 const CONN_LABELS = { 'client-flow': 'Clientes', dependency: 'Dependencia', 'content-flow': 'Contenido', revenue: 'Revenue', strategic: 'Estrategico' };
 const STAGE_COLORS = { idea: '#888', desarrollo: '#3498db', mvp: '#e67e22', activo: '#2ecc71', escalando: '#c9a94e', escritura: '#9b59b6', pausado: '#555' };
@@ -286,7 +286,7 @@ function resize() {
 
 // --- Navigation ---
 async function navigateTo(boardId, boardName) {
-  board = await fetch(`${API}/boards/${boardId}`).then(r => r.json());
+  board = await fetch(`${ECO_API}/boards/${boardId}`).then(r => r.json());
   if (!board.nodes) board.nodes = [];
   if (!board.connections) board.connections = [];
   board.nodes.forEach(n => { if (!n.initiatives) n.initiatives = []; });
@@ -738,18 +738,18 @@ async function savePanel() {
   Object.assign(selectedNode, body);
   document.getElementById('spTitle').textContent = body.name||'Nodo';
   document.getElementById('spColorHex').textContent = body.color;
-  await fetch(`${API}/boards/${board.id}/nodes/${selectedNode.id}`, {method:'PUT', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body)});
+  await fetch(`${ECO_API}/boards/${board.id}/nodes/${selectedNode.id}`, {method:'PUT', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body)});
   const saved = document.getElementById('spSaved'); saved.classList.add('show'); setTimeout(()=>saved.classList.remove('show'),1500);
 }
 
 async function saveNodePos(n) {
   if(!board) return;
-  await fetch(`${API}/boards/${board.id}/nodes/${n.id}`, {method:'PUT', headers:{'Content-Type':'application/json'}, body:JSON.stringify({x:Math.round(n.x),y:Math.round(n.y)})});
+  await fetch(`${ECO_API}/boards/${board.id}/nodes/${n.id}`, {method:'PUT', headers:{'Content-Type':'application/json'}, body:JSON.stringify({x:Math.round(n.x),y:Math.round(n.y)})});
 }
 
 async function createNode() {
   if(!board) return;
-  const r = await fetch(`${API}/boards/${board.id}/nodes`, {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({})});
+  const r = await fetch(`${ECO_API}/boards/${board.id}/nodes`, {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({})});
   const node = await r.json(); if(!node.initiatives) node.initiatives=[];
   board.nodes.push(node); openPanel(node);
 }
@@ -757,8 +757,8 @@ async function createNode() {
 window.deleteNode = async function() {
   if(!selectedNode||!board||!confirm('Eliminar este nodo?')) return;
   // Also delete child board if exists
-  if(selectedNode.childBoardId) { await fetch(`${API}/boards/${selectedNode.childBoardId}`,{method:'DELETE'}).catch(()=>{}); }
-  await fetch(`${API}/boards/${board.id}/nodes/${selectedNode.id}`,{method:'DELETE'});
+  if(selectedNode.childBoardId) { await fetch(`${ECO_API}/boards/${selectedNode.childBoardId}`,{method:'DELETE'}).catch(()=>{}); }
+  await fetch(`${ECO_API}/boards/${board.id}/nodes/${selectedNode.id}`,{method:'DELETE'});
   board.nodes = board.nodes.filter(n=>n.id!==selectedNode.id);
   board.connections = board.connections.filter(c=>c.from!==selectedNode.id&&c.to!==selectedNode.id);
   initParticles(); closePanel();
@@ -773,10 +773,10 @@ window.drillInto = async function(n) {
 
 window.createChildBoard = async function() {
   if(!selectedNode||!board) return;
-  const r = await fetch(`${API}/boards`, {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({name:selectedNode.name})});
+  const r = await fetch(`${ECO_API}/boards`, {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({name:selectedNode.name})});
   const newBoard = await r.json();
   selectedNode.childBoardId = newBoard.id;
-  await fetch(`${API}/boards/${board.id}/nodes/${selectedNode.id}`, {method:'PUT', headers:{'Content-Type':'application/json'}, body:JSON.stringify({childBoardId:newBoard.id})});
+  await fetch(`${ECO_API}/boards/${board.id}/nodes/${selectedNode.id}`, {method:'PUT', headers:{'Content-Type':'application/json'}, body:JSON.stringify({childBoardId:newBoard.id})});
   openPanel(selectedNode); // Refresh panel to show drill button
 };
 
@@ -799,25 +799,23 @@ async function saveConnPanel() {
   const body = {label:document.getElementById('cpLabel').value, detail:document.getElementById('cpDetail').value, type:document.getElementById('cpType').value};
   Object.assign(selectedConn, body);
   document.getElementById('cpTitle').textContent = body.label||'Conexion';
-  await fetch(`${API}/boards/${board.id}/connections/${selectedConn.id}`,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+  await fetch(`${ECO_API}/boards/${board.id}/connections/${selectedConn.id}`,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
   const saved=document.getElementById('cpSaved'); saved.classList.add('show'); setTimeout(()=>saved.classList.remove('show'),1500);
 }
 async function deleteConn() {
   if(!selectedConn||!board||!confirm('Eliminar esta conexion?')) return;
-  await fetch(`${API}/boards/${board.id}/connections/${selectedConn.id}`,{method:'DELETE'});
+  await fetch(`${ECO_API}/boards/${board.id}/connections/${selectedConn.id}`,{method:'DELETE'});
   board.connections = board.connections.filter(c=>c.id!==selectedConn.id);
   particles = particles.filter(p=>p.connId!==selectedConn.id);
   closeConnPanel();
 }
 async function createConnFlow(fromId, toId) {
   if(!board) return;
-  const label = prompt('Etiqueta:',''); if(label===null) return;
-  const tc = prompt('Tipo (1=Clientes, 2=Dependencia, 3=Contenido, 4=Revenue, 5=Estrategico):','1');
-  const types = {'1':'client-flow','2':'dependency','3':'content-flow','4':'revenue','5':'strategic'};
-  const r = await fetch(`${API}/boards/${board.id}/connections`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({from:fromId,to:toId,label:label||'',type:types[tc]||'strategic'})});
+  // Create connection directly, edit details in panel
+  const r = await fetch(`${ECO_API}/boards/${board.id}/connections`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({from:fromId,to:toId,label:'',type:'strategic'})});
   const conn = await r.json(); board.connections.push(conn);
   for(let i=0;i<4;i++) particles.push({connId:conn.id,t:i/4,speed:.0008+Math.random()*.0006,size:2+Math.random()*1.5,brightness:.5+Math.random()*.5});
-  openConnPanel(conn);
+  openConnPanel(conn); // Opens panel to edit type, label, detail
 }
 
 init();

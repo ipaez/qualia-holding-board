@@ -770,8 +770,7 @@ function bindEvents() {
       if (c) {
         if (!connectFrom) { connectFrom = c; }
         else if (c !== connectFrom) {
-          const label = prompt('Que los conecta?', '');
-          if (label !== null) createConnection(connectFrom.id, c.id, label);
+          createConnection(connectFrom.id, c.id, '');
           connectMode = false; connectFrom = null;
           canvas.classList.remove('connecting');
           document.getElementById('btnConn').classList.remove('active');
@@ -1019,6 +1018,7 @@ async function createConnection(fromId, toId, label) {
   const conn = await fetch(`${BAPI}/boards/${currentBoard.id}/connections`, { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ from: fromId, to: toId, label }) }).then(r => r.json());
   currentBoard.connections.push(conn);
   for (let i = 0; i < 3; i++) particles.push({ connId: conn.id, t: i/3, speed: .0006+Math.random()*.0005, size: 1.5+Math.random()*1.5 });
+  openConnPanel(conn);
 }
 
 // --- Ref Picker ---

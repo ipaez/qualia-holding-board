@@ -2885,8 +2885,8 @@
             "color": "#3498db",
             "tags": [],
             "icon": "idea",
-            "x": 99,
-            "y": -619,
+            "x": 400,
+            "y": -136,
             "parentId": "c-947fe431",
             "children": [],
             "refs": []
@@ -2900,8 +2900,8 @@
             "color": "#c9a94e",
             "tags": [],
             "icon": "idea",
-            "x": 590,
-            "y": -343,
+            "x": 1255,
+            "y": -546,
             "refs": []
           },
           {
@@ -2913,8 +2913,8 @@
             "color": "#c9a94e",
             "tags": [],
             "icon": "idea",
-            "x": -383,
-            "y": -342,
+            "x": -306,
+            "y": -311,
             "refs": []
           },
           {
@@ -2926,8 +2926,8 @@
             "color": "#c9a94e",
             "tags": [],
             "icon": "idea",
-            "x": -958,
-            "y": -659,
+            "x": -938,
+            "y": -706,
             "refs": []
           },
           {
@@ -2939,8 +2939,8 @@
             "color": "#c9a94e",
             "tags": [],
             "icon": "idea",
-            "x": -1037,
-            "y": -466,
+            "x": -1021,
+            "y": -485,
             "refs": []
           },
           {
@@ -2952,8 +2952,8 @@
             "color": "#c9a94e",
             "tags": [],
             "icon": "idea",
-            "x": -1054,
-            "y": -259,
+            "x": -1075,
+            "y": -271,
             "refs": []
           },
           {
@@ -2965,8 +2965,8 @@
             "color": "#c9a94e",
             "tags": [],
             "icon": "idea",
-            "x": -990,
-            "y": -56,
+            "x": -1004,
+            "y": -54,
             "refs": []
           },
           {
@@ -2978,8 +2978,8 @@
             "color": "#c9a94e",
             "tags": [],
             "icon": "idea",
-            "x": -845,
-            "y": -842,
+            "x": -893,
+            "y": -947,
             "refs": []
           },
           {
@@ -2991,8 +2991,8 @@
             "color": "#c9a94e",
             "tags": [],
             "icon": "idea",
-            "x": -856,
-            "y": 123,
+            "x": -949,
+            "y": 172,
             "refs": []
           },
           {
@@ -3004,8 +3004,8 @@
             "color": "#c9a94e",
             "tags": [],
             "icon": "idea",
-            "x": -721,
-            "y": 315,
+            "x": -944,
+            "y": 430,
             "refs": []
           },
           {
@@ -3019,6 +3019,71 @@
             "icon": "idea",
             "x": -1701,
             "y": -312,
+            "refs": []
+          },
+          {
+            "id": "c-222bd224",
+            "title": "Zero to One",
+            "summary": "InfraQualia",
+            "detail": "",
+            "source": "",
+            "color": "#c9a94e",
+            "tags": [],
+            "icon": "idea",
+            "x": 729,
+            "y": 214,
+            "refs": []
+          },
+          {
+            "id": "c-ce6f8f34",
+            "title": "InfraQualia",
+            "summary": "",
+            "detail": "",
+            "source": "",
+            "color": "#f39c12",
+            "tags": [],
+            "icon": "idea",
+            "x": 1213,
+            "y": 475,
+            "refs": []
+          },
+          {
+            "id": "c-d6f7f85d",
+            "title": "Suscription Plan",
+            "summary": "",
+            "detail": "",
+            "source": "",
+            "color": "#c9a94e",
+            "tags": [],
+            "icon": "idea",
+            "x": 1630,
+            "y": 628,
+            "refs": []
+          },
+          {
+            "id": "c-a2279cf4",
+            "title": "Support",
+            "summary": "",
+            "detail": "",
+            "source": "",
+            "color": "#c9a94e",
+            "tags": [],
+            "icon": "idea",
+            "x": 2103,
+            "y": 639,
+            "refs": []
+          },
+          {
+            "id": "c-811a178c",
+            "title": "Updates",
+            "summary": "",
+            "detail": "",
+            "source": "",
+            "color": "#c9a94e",
+            "tags": [],
+            "icon": "idea",
+            "x": 2110,
+            "y": 904,
             "refs": []
           }
         ],
@@ -3062,6 +3127,104 @@
             "id": "cx-7ab3bcf1",
             "from": "c-ace64552",
             "to": "c-b20c3662",
+            "label": "",
+            "detail": ""
+          },
+          {
+            "id": "cx-7fea0b89",
+            "from": "c-6576d37d",
+            "to": "c-b20c3662",
+            "label": "",
+            "detail": ""
+          },
+          {
+            "id": "cx-c166e5c3",
+            "from": "c-f53356c5",
+            "to": "c-b20c3662",
+            "label": "",
+            "detail": ""
+          },
+          {
+            "id": "cx-b8ee75b7",
+            "from": "c-49b6ceb5",
+            "to": "c-b20c3662",
+            "label": "",
+            "detail": ""
+          },
+          {
+            "id": "cx-96c8638c",
+            "from": "c-da47ff41",
+            "to": "c-ae062823",
+            "label": "",
+            "detail": ""
+          },
+          {
+            "id": "cx-c68d5158",
+            "from": "c-da47ff41",
+            "to": "c-278abff6",
+            "label": "",
+            "detail": ""
+          },
+          {
+            "id": "cx-558ce63f",
+            "from": "c-da47ff41",
+            "to": "c-cab153d3",
+            "label": "",
+            "detail": ""
+          },
+          {
+            "id": "cx-ad007ff8",
+            "from": "c-da47ff41",
+            "to": "c-ace64552",
+            "label": "",
+            "detail": ""
+          },
+          {
+            "id": "cx-58b0f952",
+            "from": "c-da47ff41",
+            "to": "c-6576d37d",
+            "label": "",
+            "detail": ""
+          },
+          {
+            "id": "cx-a8fb202e",
+            "from": "c-da47ff41",
+            "to": "c-f53356c5",
+            "label": "",
+            "detail": ""
+          },
+          {
+            "id": "cx-96444bf2",
+            "from": "c-da47ff41",
+            "to": "c-49b6ceb5",
+            "label": "",
+            "detail": ""
+          },
+          {
+            "id": "cx-bd1b05a6",
+            "from": "c-9d545c7b",
+            "to": "c-222bd224",
+            "label": "",
+            "detail": ""
+          },
+          {
+            "id": "cx-4b057195",
+            "from": "c-ce6f8f34",
+            "to": "c-222bd224",
+            "label": "",
+            "detail": ""
+          },
+          {
+            "id": "cx-e959abd5",
+            "from": "c-d6f7f85d",
+            "to": "c-a2279cf4",
+            "label": "",
+            "detail": ""
+          },
+          {
+            "id": "cx-f04bc0e6",
+            "from": "c-d6f7f85d",
+            "to": "c-811a178c",
             "label": "",
             "detail": ""
           }
