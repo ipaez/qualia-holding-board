@@ -2344,291 +2344,298 @@
     "visual-mapping"
   ],
   "ecosystem": {
-    "nodes": [
+    "boards": [
       {
-        "id": "infraqualia",
-        "name": "InfraQualia",
-        "description": "Servicio managed de IA para empresas",
-        "objective": "",
-        "notes": "",
-        "color": "#1abc9c",
-        "x": -646,
-        "y": 212,
-        "active": true,
-        "stage": "mvp",
-        "revenue": "Pre-revenue",
-        "agent": "InfraQual-IA",
-        "tags": [
-          "SaaS",
-          "B2B",
-          "IA"
+        "id": "root",
+        "name": "Qualia Holding",
+        "created": "2026-02-21T18:52:29.434Z",
+        "nodes": [
+          {
+            "id": "infraqualia",
+            "name": "InfraQualia",
+            "description": "Servicio managed de IA para empresas",
+            "objective": "",
+            "notes": "",
+            "color": "#1abc9c",
+            "x": -646,
+            "y": 212,
+            "active": true,
+            "stage": "mvp",
+            "revenue": "Pre-revenue",
+            "agent": "InfraQual-IA",
+            "tags": [
+              "SaaS",
+              "B2B",
+              "IA"
+            ],
+            "metrics": [
+              {
+                "label": "Clientes",
+                "value": "0"
+              },
+              {
+                "label": "MRR",
+                "value": "$0"
+              },
+              {
+                "label": "Agente",
+                "value": "Opus"
+              }
+            ]
+          },
+          {
+            "id": "qualia-academy",
+            "name": "Qualia Academy",
+            "description": "Academy as a Service para fondos VC y startups",
+            "objective": "",
+            "notes": "",
+            "color": "#e74c3c",
+            "x": 42,
+            "y": 501,
+            "active": true,
+            "stage": "activo",
+            "revenue": "$2k-5k/mo",
+            "agent": "Prisma-QualIA",
+            "tags": [
+              "EdTech",
+              "VC",
+              "Startups"
+            ],
+            "metrics": [
+              {
+                "label": "Startups",
+                "value": "300+"
+              },
+              {
+                "label": "Revenue",
+                "value": "$2-5k"
+              },
+              {
+                "label": "Modelo",
+                "value": "AaaS"
+              }
+            ]
+          },
+          {
+            "id": "qualia-wealth",
+            "name": "Qualia Wealth",
+            "description": "Dashboard de inversiones personales",
+            "objective": "",
+            "notes": "",
+            "color": "#c9a94e",
+            "x": 357,
+            "y": -394,
+            "active": true,
+            "stage": "activo",
+            "revenue": "Personal",
+            "agent": "QualIA",
+            "tags": [
+              "FinTech",
+              "Personal",
+              "Dashboard"
+            ],
+            "metrics": [
+              {
+                "label": "Stocks",
+                "value": "8"
+              },
+              {
+                "label": "Refresh",
+                "value": "10s"
+              },
+              {
+                "label": "Dominio",
+                "value": "qualiawealth.us"
+              }
+            ]
+          },
+          {
+            "id": "prisma-pipeline",
+            "name": "Prisma Pipeline",
+            "description": "Pipeline automatizado de contenido desde videos",
+            "objective": "",
+            "notes": "",
+            "color": "#3498db",
+            "x": 85,
+            "y": 52,
+            "active": true,
+            "stage": "mvp",
+            "revenue": "Interno",
+            "agent": "Prisma Engine",
+            "tags": [
+              "Contenido",
+              "Automatizacion"
+            ],
+            "metrics": [
+              {
+                "label": "Pipeline",
+                "value": "E2E"
+              },
+              {
+                "label": "Orquestador",
+                "value": "n8n"
+              },
+              {
+                "label": "Estado",
+                "value": "Testing"
+              }
+            ]
+          },
+          {
+            "id": "prisma-engine",
+            "name": "Prisma Engine",
+            "description": "Motor de procesamiento de video con n8n",
+            "objective": "",
+            "notes": "",
+            "color": "#9b59b6",
+            "x": 805,
+            "y": 523,
+            "active": true,
+            "stage": "mvp",
+            "revenue": "Interno",
+            "agent": "Prisma Engine",
+            "tags": [
+              "Video",
+              "n8n",
+              "AI"
+            ],
+            "metrics": [
+              {
+                "label": "Cascada",
+                "value": "3 niveles"
+              },
+              {
+                "label": "Docker",
+                "value": "Activo"
+              },
+              {
+                "label": "Puerto",
+                "value": "5678"
+              }
+            ]
+          },
+          {
+            "id": "visual-mapping",
+            "name": "Visual Mapping WTW",
+            "description": "Medicion por foto y cotizador geometrico de telas",
+            "objective": "",
+            "notes": "",
+            "color": "#e67e22",
+            "x": 807,
+            "y": -269,
+            "active": true,
+            "stage": "desarrollo",
+            "revenue": "Pre-revenue",
+            "agent": "Visual Mapping",
+            "tags": [
+              "WTW",
+              "Medicion",
+              "Telas"
+            ],
+            "metrics": [
+              {
+                "label": "Precision",
+                "value": "Alta"
+              },
+              {
+                "label": "Cotizador",
+                "value": "Activo"
+              },
+              {
+                "label": "Agente",
+                "value": "Opus"
+              }
+            ]
+          },
+          {
+            "id": "curso-ia",
+            "name": "Curso de IA",
+            "description": "Curso fundamentos a agentes (n8n, Make, RAG, fine-tuning)",
+            "objective": "",
+            "notes": "",
+            "color": "#e056a0",
+            "x": -416,
+            "y": -245,
+            "active": true,
+            "stage": "desarrollo",
+            "revenue": "Pre-venta",
+            "agent": "QualIA",
+            "tags": [
+              "Curso",
+              "IA",
+              "RAG"
+            ],
+            "metrics": [
+              {
+                "label": "Modulos",
+                "value": "8"
+              },
+              {
+                "label": "Stack",
+                "value": "n8n+RAG"
+              },
+              {
+                "label": "Formato",
+                "value": "Online"
+              }
+            ]
+          },
+          {
+            "id": "libro",
+            "name": "Libro",
+            "description": "Que la suerte nos pille preparados",
+            "objective": "",
+            "notes": "",
+            "color": "#f39c12",
+            "x": 782,
+            "y": 33,
+            "active": true,
+            "stage": "escritura",
+            "revenue": "Pre-venta",
+            "agent": "QualIA",
+            "tags": [
+              "Libro",
+              "Autobiografia"
+            ],
+            "metrics": [
+              {
+                "label": "Titulo",
+                "value": "QLSNPP"
+              },
+              {
+                "label": "Capitulos",
+                "value": "WIP"
+              },
+              {
+                "label": "Formato",
+                "value": "Digital+Fisico"
+              }
+            ]
+          }
         ],
-        "metrics": [
+        "connections": [
           {
-            "label": "Clientes",
-            "value": "0"
+            "id": "conn1",
+            "from": "qualia-academy",
+            "to": "infraqualia",
+            "label": "Startups necesitan infra IA",
+            "type": "client-flow"
           },
           {
-            "label": "MRR",
-            "value": "$0"
+            "id": "conn2",
+            "from": "prisma-pipeline",
+            "to": "prisma-engine",
+            "label": "Pipeline usa el engine",
+            "type": "dependency"
           },
           {
-            "label": "Agente",
-            "value": "Opus"
+            "id": "conn3",
+            "from": "qualia-academy",
+            "to": "prisma-pipeline",
+            "label": "Asesorias generan contenido",
+            "type": "content-flow"
           }
         ]
-      },
-      {
-        "id": "qualia-academy",
-        "name": "Qualia Academy",
-        "description": "Academy as a Service para fondos VC y startups",
-        "objective": "",
-        "notes": "",
-        "color": "#e74c3c",
-        "x": -162,
-        "y": 674,
-        "active": true,
-        "stage": "activo",
-        "revenue": "$2k-5k/mo",
-        "agent": "Prisma-QualIA",
-        "tags": [
-          "EdTech",
-          "VC",
-          "Startups"
-        ],
-        "metrics": [
-          {
-            "label": "Startups",
-            "value": "300+"
-          },
-          {
-            "label": "Revenue",
-            "value": "$2-5k"
-          },
-          {
-            "label": "Modelo",
-            "value": "AaaS"
-          }
-        ]
-      },
-      {
-        "id": "qualia-wealth",
-        "name": "Qualia Wealth",
-        "description": "Dashboard de inversiones personales",
-        "objective": "",
-        "notes": "",
-        "color": "#c9a94e",
-        "x": 349,
-        "y": -303,
-        "active": true,
-        "stage": "activo",
-        "revenue": "Personal",
-        "agent": "QualIA",
-        "tags": [
-          "FinTech",
-          "Personal",
-          "Dashboard"
-        ],
-        "metrics": [
-          {
-            "label": "Stocks",
-            "value": "8"
-          },
-          {
-            "label": "Refresh",
-            "value": "10s"
-          },
-          {
-            "label": "Dominio",
-            "value": "qualiawealth.us"
-          }
-        ]
-      },
-      {
-        "id": "prisma-pipeline",
-        "name": "Prisma Pipeline",
-        "description": "Pipeline automatizado de contenido desde videos",
-        "objective": "",
-        "notes": "",
-        "color": "#3498db",
-        "x": 85,
-        "y": 52,
-        "active": true,
-        "stage": "mvp",
-        "revenue": "Interno",
-        "agent": "Prisma Engine",
-        "tags": [
-          "Contenido",
-          "Automatizacion"
-        ],
-        "metrics": [
-          {
-            "label": "Pipeline",
-            "value": "E2E"
-          },
-          {
-            "label": "Orquestador",
-            "value": "n8n"
-          },
-          {
-            "label": "Estado",
-            "value": "Testing"
-          }
-        ]
-      },
-      {
-        "id": "prisma-engine",
-        "name": "Prisma Engine",
-        "description": "Motor de procesamiento de video con n8n",
-        "objective": "",
-        "notes": "",
-        "color": "#9b59b6",
-        "x": 805,
-        "y": 523,
-        "active": true,
-        "stage": "mvp",
-        "revenue": "Interno",
-        "agent": "Prisma Engine",
-        "tags": [
-          "Video",
-          "n8n",
-          "AI"
-        ],
-        "metrics": [
-          {
-            "label": "Cascada",
-            "value": "3 niveles"
-          },
-          {
-            "label": "Docker",
-            "value": "Activo"
-          },
-          {
-            "label": "Puerto",
-            "value": "5678"
-          }
-        ]
-      },
-      {
-        "id": "visual-mapping",
-        "name": "Visual Mapping WTW",
-        "description": "Medicion por foto y cotizador geometrico de telas",
-        "objective": "",
-        "notes": "",
-        "color": "#e67e22",
-        "x": 807,
-        "y": -269,
-        "active": true,
-        "stage": "desarrollo",
-        "revenue": "Pre-revenue",
-        "agent": "Visual Mapping",
-        "tags": [
-          "WTW",
-          "Medicion",
-          "Telas"
-        ],
-        "metrics": [
-          {
-            "label": "Precision",
-            "value": "Alta"
-          },
-          {
-            "label": "Cotizador",
-            "value": "Activo"
-          },
-          {
-            "label": "Agente",
-            "value": "Opus"
-          }
-        ]
-      },
-      {
-        "id": "curso-ia",
-        "name": "Curso de IA",
-        "description": "Curso fundamentos a agentes (n8n, Make, RAG, fine-tuning)",
-        "objective": "",
-        "notes": "",
-        "color": "#e056a0",
-        "x": -416,
-        "y": -245,
-        "active": true,
-        "stage": "desarrollo",
-        "revenue": "Pre-venta",
-        "agent": "QualIA",
-        "tags": [
-          "Curso",
-          "IA",
-          "RAG"
-        ],
-        "metrics": [
-          {
-            "label": "Modulos",
-            "value": "8"
-          },
-          {
-            "label": "Stack",
-            "value": "n8n+RAG"
-          },
-          {
-            "label": "Formato",
-            "value": "Online"
-          }
-        ]
-      },
-      {
-        "id": "libro",
-        "name": "Libro",
-        "description": "Que la suerte nos pille preparados",
-        "objective": "",
-        "notes": "",
-        "color": "#f39c12",
-        "x": 806,
-        "y": 80,
-        "active": true,
-        "stage": "escritura",
-        "revenue": "Pre-venta",
-        "agent": "QualIA",
-        "tags": [
-          "Libro",
-          "Autobiografia"
-        ],
-        "metrics": [
-          {
-            "label": "Titulo",
-            "value": "QLSNPP"
-          },
-          {
-            "label": "Capitulos",
-            "value": "WIP"
-          },
-          {
-            "label": "Formato",
-            "value": "Digital+Fisico"
-          }
-        ]
-      }
-    ],
-    "connections": [
-      {
-        "id": "conn1",
-        "from": "qualia-academy",
-        "to": "infraqualia",
-        "label": "Startups necesitan infra IA",
-        "type": "client-flow"
-      },
-      {
-        "id": "conn2",
-        "from": "prisma-pipeline",
-        "to": "prisma-engine",
-        "label": "Pipeline usa el engine",
-        "type": "dependency"
-      },
-      {
-        "id": "conn3",
-        "from": "qualia-academy",
-        "to": "prisma-pipeline",
-        "label": "Asesorias generan contenido",
-        "type": "content-flow"
       }
     ]
   },
@@ -2878,8 +2885,8 @@
             "color": "#3498db",
             "tags": [],
             "icon": "idea",
-            "x": 211,
-            "y": -467,
+            "x": 99,
+            "y": -619,
             "parentId": "c-947fe431",
             "children": [],
             "refs": []
@@ -2893,8 +2900,8 @@
             "color": "#c9a94e",
             "tags": [],
             "icon": "idea",
-            "x": 648,
-            "y": -247,
+            "x": 590,
+            "y": -343,
             "refs": []
           },
           {
@@ -2906,12 +2913,159 @@
             "color": "#c9a94e",
             "tags": [],
             "icon": "idea",
-            "x": -261,
-            "y": -253,
+            "x": -383,
+            "y": -342,
+            "refs": []
+          },
+          {
+            "id": "c-278abff6",
+            "title": "TypeForm",
+            "summary": "",
+            "detail": "",
+            "source": "",
+            "color": "#c9a94e",
+            "tags": [],
+            "icon": "idea",
+            "x": -958,
+            "y": -659,
+            "refs": []
+          },
+          {
+            "id": "c-cab153d3",
+            "title": "Perfilador",
+            "summary": "",
+            "detail": "",
+            "source": "",
+            "color": "#c9a94e",
+            "tags": [],
+            "icon": "idea",
+            "x": -1037,
+            "y": -466,
+            "refs": []
+          },
+          {
+            "id": "c-ace64552",
+            "title": "Landing Pages",
+            "summary": "",
+            "detail": "",
+            "source": "",
+            "color": "#c9a94e",
+            "tags": [],
+            "icon": "idea",
+            "x": -1054,
+            "y": -259,
+            "refs": []
+          },
+          {
+            "id": "c-6576d37d",
+            "title": "CashFlow",
+            "summary": "",
+            "detail": "",
+            "source": "",
+            "color": "#c9a94e",
+            "tags": [],
+            "icon": "idea",
+            "x": -990,
+            "y": -56,
+            "refs": []
+          },
+          {
+            "id": "c-ae062823",
+            "title": "Investor Update",
+            "summary": "",
+            "detail": "",
+            "source": "",
+            "color": "#c9a94e",
+            "tags": [],
+            "icon": "idea",
+            "x": -845,
+            "y": -842,
+            "refs": []
+          },
+          {
+            "id": "c-f53356c5",
+            "title": "Pipeline Clientes",
+            "summary": "",
+            "detail": "",
+            "source": "",
+            "color": "#c9a94e",
+            "tags": [],
+            "icon": "idea",
+            "x": -856,
+            "y": 123,
+            "refs": []
+          },
+          {
+            "id": "c-49b6ceb5",
+            "title": "Pipeline Inversionistas",
+            "summary": "",
+            "detail": "",
+            "source": "",
+            "color": "#c9a94e",
+            "tags": [],
+            "icon": "idea",
+            "x": -721,
+            "y": 315,
+            "refs": []
+          },
+          {
+            "id": "c-b20c3662",
+            "title": "Airtable",
+            "summary": "",
+            "detail": "",
+            "source": "",
+            "color": "#3498db",
+            "tags": [],
+            "icon": "idea",
+            "x": -1701,
+            "y": -312,
             "refs": []
           }
         ],
-        "connections": [],
+        "connections": [
+          {
+            "id": "cx-2186c0aa",
+            "from": "c-9d545c7b",
+            "to": "c-da47ff41",
+            "label": "",
+            "detail": ""
+          },
+          {
+            "id": "cx-04471356",
+            "from": "c-9d545c7b",
+            "to": "c-1cf96edc",
+            "label": "",
+            "detail": ""
+          },
+          {
+            "id": "cx-32ee07bd",
+            "from": "c-ae062823",
+            "to": "c-b20c3662",
+            "label": "",
+            "detail": ""
+          },
+          {
+            "id": "cx-196fd0da",
+            "from": "c-278abff6",
+            "to": "c-b20c3662",
+            "label": "",
+            "detail": ""
+          },
+          {
+            "id": "cx-0ca2f0b8",
+            "from": "c-cab153d3",
+            "to": "c-b20c3662",
+            "label": "",
+            "detail": ""
+          },
+          {
+            "id": "cx-7ab3bcf1",
+            "from": "c-ace64552",
+            "to": "c-b20c3662",
+            "label": "",
+            "detail": ""
+          }
+        ],
         "principalId": "c-7eb5aca8"
       }
     ]

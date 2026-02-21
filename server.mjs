@@ -182,18 +182,65 @@ export default async function handler(req, res) {
       return json(res, 200, stats);
     }
 
-    // --- Ecosystem API ---
-    // GET /api/ecosystem
-    if (path === '/api/ecosystem' && req.method === 'GET') {
-      return json(res, 200, data.ecosystem);
+    // --- Ecosystem API (board-based, recursive) ---
+    // Migration: convert flat ecosystem to boards format
+    if (!data.ecosystem.boards) {
+      const old = data.ecosystem;
+      data.ecosystem = { boards: [{ id: 'root', name: 'Qualia Holding', created: new Date().toISOString(), nodes: old.nodes || [], connections: old.connections || [] }] };
+      saveData(data);
+    }
+    const ecoBoards = data.ecosystem.boards;
+    const findEcoBoard = id => ecoBoards.find(b => b.id === id);
+
+    // GET /api/ecosystem/boards
+    if (path === '/api/ecosystem/boards' && req.method === 'GET') {
+      return json(res, 200, ecoBoards.map(b => ({ id: b.id, name: b.name, created: b.created, nodeCount: (b.nodes||[]).length })));
     }
 
-    // POST /api/ecosystem/nodes
-    if (path === '/api/ecosystem/nodes' && req.method === 'POST') {
+    // POST /api/ecosystem/boards
+    if (path === '/api/ecosystem/boards' && req.method === 'POST') {
+      const body = await readBody(req);
+      const board = { id: body.id || crypto.randomUUID(), name: body.name || 'Nuevo Ecosistema', created: new Date().toISOString(), nodes: [], connections: [] };
+      ecoBoards.push(board);
+      saveData(data);
+      return json(res, 201, board);
+    }
+
+    // GET /api/ecosystem/boards/:id
+    const ecoBoardMatch = path.match(/^\/api\/ecosystem\/boards\/([^/]+)$/);
+    if (ecoBoardMatch && req.method === 'GET') {
+      const board = findEcoBoard(ecoBoardMatch[1]);
+      if (!board) return json(res, 404, { error: 'Not found' });
+      return json(res, 200, board);
+    }
+    // PUT /api/ecosystem/boards/:id
+    if (ecoBoardMatch && req.method === 'PUT') {
+      const board = findEcoBoard(ecoBoardMatch[1]);
+      if (!board) return json(res, 404, { error: 'Not found' });
+      const body = await readBody(req);
+      if (body.name !== undefined) board.name = body.name;
+      saveData(data);
+      return json(res, 200, board);
+    }
+    // DELETE /api/ecosystem/boards/:id
+    if (ecoBoardMatch && req.method === 'DELETE') {
+      if (ecoBoardMatch[1] === 'root') return json(res, 400, { error: 'Cannot delete root board' });
+      const idx = ecoBoards.findIndex(b => b.id === ecoBoardMatch[1]);
+      if (idx === -1) return json(res, 404, { error: 'Not found' });
+      ecoBoards.splice(idx, 1);
+      saveData(data);
+      return json(res, 200, { ok: true });
+    }
+
+    // POST /api/ecosystem/boards/:id/nodes
+    const ecoNodesMatch = path.match(/^\/api\/ecosystem\/boards\/([^/]+)\/nodes$/);
+    if (ecoNodesMatch && req.method === 'POST') {
+      const board = findEcoBoard(ecoNodesMatch[1]);
+      if (!board) return json(res, 404, { error: 'Board not found' });
       const body = await readBody(req);
       const node = {
         id: body.id || crypto.randomUUID(),
-        name: body.name || 'Nuevo Proyecto',
+        name: body.name || 'Nuevo Nodo',
         description: body.description || '',
         objective: body.objective || '',
         notes: body.notes || '',
@@ -207,72 +254,82 @@ export default async function handler(req, res) {
         tags: body.tags || [],
         metrics: body.metrics || [],
         initiatives: body.initiatives || [],
-        parentId: body.parentId || null,
+        childBoardId: body.childBoardId || null,
+        projectName: body.projectName || '',
       };
-      data.ecosystem.nodes.push(node);
+      if (!board.nodes) board.nodes = [];
+      board.nodes.push(node);
       saveData(data);
       return json(res, 201, node);
     }
 
-    // PUT /api/ecosystem/nodes/:id
-    const ecoNodeMatch = path.match(/^\/api\/ecosystem\/nodes\/([^/]+)$/);
+    // PUT /api/ecosystem/boards/:bid/nodes/:nid
+    const ecoNodeMatch = path.match(/^\/api\/ecosystem\/boards\/([^/]+)\/nodes\/([^/]+)$/);
     if (ecoNodeMatch && req.method === 'PUT') {
-      const node = data.ecosystem.nodes.find(n => n.id === ecoNodeMatch[1]);
-      if (!node) return json(res, 404, { error: 'Not found' });
+      const board = findEcoBoard(ecoNodeMatch[1]);
+      if (!board) return json(res, 404, { error: 'Board not found' });
+      const node = (board.nodes || []).find(n => n.id === ecoNodeMatch[2]);
+      if (!node) return json(res, 404, { error: 'Node not found' });
       const body = await readBody(req);
-      for (const key of ['name','description','objective','notes','color','x','y','active','stage','revenue','agent','tags','metrics','initiatives','parentId']) {
+      for (const key of ['name','description','objective','notes','color','x','y','active','stage','revenue','agent','tags','metrics','initiatives','childBoardId','projectName']) {
         if (body[key] !== undefined) node[key] = body[key];
       }
       saveData(data);
       return json(res, 200, node);
     }
-
-    // DELETE /api/ecosystem/nodes/:id
+    // DELETE /api/ecosystem/boards/:bid/nodes/:nid
     if (ecoNodeMatch && req.method === 'DELETE') {
-      const idx = data.ecosystem.nodes.findIndex(n => n.id === ecoNodeMatch[1]);
-      if (idx === -1) return json(res, 404, { error: 'Not found' });
-      data.ecosystem.nodes.splice(idx, 1);
-      data.ecosystem.connections = data.ecosystem.connections.filter(c => c.from !== ecoNodeMatch[1] && c.to !== ecoNodeMatch[1]);
+      const board = findEcoBoard(ecoNodeMatch[1]);
+      if (!board) return json(res, 404, { error: 'Board not found' });
+      const idx = (board.nodes || []).findIndex(n => n.id === ecoNodeMatch[2]);
+      if (idx === -1) return json(res, 404, { error: 'Node not found' });
+      const nodeId = board.nodes[idx].id;
+      board.nodes.splice(idx, 1);
+      board.connections = (board.connections || []).filter(c => c.from !== nodeId && c.to !== nodeId);
       saveData(data);
       return json(res, 200, { ok: true });
     }
 
-    // POST /api/ecosystem/connections
-    if (path === '/api/ecosystem/connections' && req.method === 'POST') {
+    // POST /api/ecosystem/boards/:id/connections
+    const ecoConnsMatch = path.match(/^\/api\/ecosystem\/boards\/([^/]+)\/connections$/);
+    if (ecoConnsMatch && req.method === 'POST') {
+      const board = findEcoBoard(ecoConnsMatch[1]);
+      if (!board) return json(res, 404, { error: 'Board not found' });
       const body = await readBody(req);
-      const conn = {
-        id: body.id || 'conn-' + crypto.randomUUID().slice(0,8),
-        from: body.from,
-        to: body.to,
-        label: body.label || '',
-        type: body.type || 'strategic',
-        detail: body.detail || '',
-      };
-      data.ecosystem.connections.push(conn);
+      const conn = { id: 'conn-' + crypto.randomUUID().slice(0,8), from: body.from, to: body.to, label: body.label || '', type: body.type || 'strategic', detail: body.detail || '' };
+      if (!board.connections) board.connections = [];
+      board.connections.push(conn);
       saveData(data);
       return json(res, 201, conn);
     }
 
-    // PUT /api/ecosystem/connections/:id
-    const ecoConnMatch = path.match(/^\/api\/ecosystem\/connections\/([^/]+)$/);
+    // PUT /api/ecosystem/boards/:bid/connections/:cid
+    const ecoConnMatch = path.match(/^\/api\/ecosystem\/boards\/([^/]+)\/connections\/([^/]+)$/);
     if (ecoConnMatch && req.method === 'PUT') {
-      const conn = data.ecosystem.connections.find(c => c.id === ecoConnMatch[1]);
-      if (!conn) return json(res, 404, { error: 'Not found' });
+      const board = findEcoBoard(ecoConnMatch[1]);
+      if (!board) return json(res, 404, { error: 'Board not found' });
+      const conn = (board.connections || []).find(c => c.id === ecoConnMatch[2]);
+      if (!conn) return json(res, 404, { error: 'Connection not found' });
       const body = await readBody(req);
-      for (const key of ['from','to','label','type','detail']) {
-        if (body[key] !== undefined) conn[key] = body[key];
-      }
+      for (const key of ['from','to','label','type','detail']) { if (body[key] !== undefined) conn[key] = body[key]; }
       saveData(data);
       return json(res, 200, conn);
     }
-
-    // DELETE /api/ecosystem/connections/:id
+    // DELETE /api/ecosystem/boards/:bid/connections/:cid
     if (ecoConnMatch && req.method === 'DELETE') {
-      const idx = data.ecosystem.connections.findIndex(c => c.id === ecoConnMatch[1]);
-      if (idx === -1) return json(res, 404, { error: 'Not found' });
-      data.ecosystem.connections.splice(idx, 1);
+      const board = findEcoBoard(ecoConnMatch[1]);
+      if (!board) return json(res, 404, { error: 'Board not found' });
+      const idx = (board.connections || []).findIndex(c => c.id === ecoConnMatch[2]);
+      if (idx === -1) return json(res, 404, { error: 'Connection not found' });
+      board.connections.splice(idx, 1);
       saveData(data);
       return json(res, 200, { ok: true });
+    }
+
+    // Backward compat: GET /api/ecosystem → root board
+    if (path === '/api/ecosystem' && req.method === 'GET') {
+      const root = findEcoBoard('root') || ecoBoards[0];
+      return json(res, 200, root || { nodes: [], connections: [] });
     }
 
     // ====== BRAINSTORM API ======

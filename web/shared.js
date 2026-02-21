@@ -199,6 +199,7 @@ function getNavHTML(active) {
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="11 17 6 12 11 7"/><polyline points="18 17 13 12 18 7"/></svg>
     <span>Colapsar</span>
   </div>
+  <div class="sidebar-version">v1.3.0</div>
 </aside>
 <div class="mobile-hamburger" id="mobileHamburger" onclick="toggleMobileSidebar()">
   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
@@ -384,6 +385,8 @@ body {
 .sidebar.collapsed .sidebar-toggle svg { transform: rotate(180deg); }
 .sidebar-toggle span { transition: opacity 0.15s 0.05s; white-space: nowrap; }
 .sidebar.collapsed .sidebar-toggle span { opacity: 0; transition-delay: 0s; }
+.sidebar-version { padding: 8px 20px 12px; font-family: var(--font-mono); font-size: 0.62rem; color: var(--text-tertiary); opacity: 0.4; transition: opacity 0.15s; }
+.sidebar.collapsed .sidebar-version { opacity: 0; }
 
 /* Main content offset */
 .qb-main {
