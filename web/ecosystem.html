@@ -381,7 +381,8 @@ async function init() {
   resize();
   window.addEventListener('resize', resize);
   await loadBoards();
-  const ids = parseHash();
+  const parsed = parseHash();
+  const ids = parsed.ids;
   if (ids.length > 0) {
     const targetId = ids[ids.length - 1];
     const parentIds = ids.slice(0, -1);
@@ -392,7 +393,7 @@ async function init() {
       navPath.push({ id: pid, name: b?.name || pid, focusNodeId: null });
     }
     const found = boards.find(b => b.id === targetId);
-    if (found) { await selectBoard(found.id); } else { autoSelect(); }
+    if (found) { await selectBoard(found.id, parsed.focusCardId); } else { autoSelect(); }
   } else {
     autoSelect();
     // Set initial hash to current board
@@ -433,25 +434,43 @@ function buildHash() {
   return '#' + parts.join('/');
 }
 
+// Parse hash: segments are boardId or boardId@focusCardId
+// Returns { ids: string[], focusCardId: string|null }
 function parseHash() {
   const h = location.hash.replace('#', '');
-  if (!h) return [];
-  return h.split('/');
+  if (!h) return { ids: [], focusCardId: null };
+  const segments = h.split('/');
+  // Check last segment for @focusCardId
+  const last = segments[segments.length - 1];
+  let focusCardId = null;
+  if (last.includes('@')) {
+    const [boardPart, cardPart] = last.split('@');
+    segments[segments.length - 1] = boardPart;
+    focusCardId = cardPart || null;
+  }
+  return { ids: segments, focusCardId };
 }
 
-// drillIntoBoard: just set the hash, hashchange does the rest
-function drillIntoBoard(id, focusNodeId) {
+// drillIntoBoard: set the hash, hashchange does the rest
+// sourceNodeId: node in current board that initiated drill (for back navigation)
+// targetFocusCardId: card in target board to center on
+function drillIntoBoard(id, sourceNodeId, targetFocusCardId) {
   if (currentBoard) {
-    navPath.push({ id: currentBoard.id, name: currentBoard.name, focusNodeId: focusNodeId || null });
+    navPath.push({ id: currentBoard.id, name: currentBoard.name, focusNodeId: sourceNodeId || null });
   }
-  const parts = navPath.map(p => p.id).concat(id);
+  const parts = navPath.map(p => p.id);
+  const lastSegment = targetFocusCardId ? id + '@' + targetFocusCardId : id;
+  parts.push(lastSegment);
   location.hash = '#' + parts.join('/');
 }
 
 function navigateBreadcrumb(index) {
   const target = navPath[index];
   navPath = navPath.slice(0, index);
-  const parts = navPath.map(p => p.id).concat(target.id);
+  const parts = navPath.map(p => p.id);
+  // Include focusNodeId so we center on the originating node when going back
+  const lastSegment = target.focusNodeId ? target.id + '@' + target.focusNodeId : target.id;
+  parts.push(lastSegment);
   location.hash = '#' + parts.join('/');
 }
 
@@ -460,28 +479,28 @@ window.addEventListener('hashchange', async () => {
   if (_navBusy) return;
   _navBusy = true;
   try {
-    const ids = parseHash();
+    const parsed = parseHash();
+    const ids = parsed.ids;
     if (ids.length === 0) { _navBusy = false; return; }
 
     const targetId = ids[ids.length - 1];
+    // focusCardId from hash (e.g. boardId@cardId)
+    let focusNodeId = parsed.focusCardId || null;
 
-    // If going back, find focusNodeId from current navPath before rebuilding
-    let focusNodeId = null;
-
-    // Rebuild navPath from hash, resolving focusNodeId for each parent
+    // Rebuild navPath from hash
     const parentIds = ids.slice(0, -1);
     const newPath = [];
     for (let i = 0; i < parentIds.length; i++) {
       const pid = parentIds[i];
-      const childId = ids[i + 1];
       const b = boards.find(b => b.id === pid);
 
-      // Check if we already have this in the old navPath with focusNodeId
+      // Preserve focusNodeId from old navPath if available
       const existing = navPath.find(p => p.id === pid);
       let fid = existing?.focusNodeId || null;
 
       // If not cached, look up which node in this board links to the child
       if (!fid && b) {
+        const childId = ids[i + 1];
         const full = await fetch(`${ECO_BAPI}/boards/${pid}`).then(r => r.json());
         const node = (full.nodes || []).find(n => n.boardId === childId);
         if (node) fid = node.id;
@@ -490,14 +509,9 @@ window.addEventListener('hashchange', async () => {
       newPath.push({ id: pid, name: b?.name || pid, focusNodeId: fid });
     }
 
-    // Determine if we're going back (shorter path) or forward (longer path)
-    const goingBack = newPath.length < navPath.length;
-    
-    // focusNodeId only when going back - center on the node that originated the drill-down
-    if (goingBack) {
-      // The node to focus is in the TARGET board - it's the one whose boardId pointed deeper
-      // We need to find which node in targetId board has boardId matching the old next level
-      const oldNextId = navPath[newPath.length]?.id; // the board we're leaving
+    // If no focusCardId in hash and going back, try to find the origin node
+    if (!focusNodeId && newPath.length < navPath.length) {
+      const oldNextId = navPath[newPath.length]?.id;
       if (oldNextId) {
         const full = await fetch(`${ECO_BAPI}/boards/${targetId}`).then(r => r.json());
         const originNode = (full.nodes || []).find(n => n.boardId === oldNextId);
@@ -579,7 +593,7 @@ async function deleteBoard(id) {
 function renderBoardTabs() {
   const bar = document.getElementById('boardsBar');
   bar.innerHTML = boards.map(b =>
-    `<div class="bs-board-tab ${currentBoard && b.id === currentBoard.id ? 'active' : ''}" onclick="navPath=[];location.hash='#'+('${b.id}')">
+    `<div class="bs-board-tab ${currentBoard && b.id === currentBoard.id ? 'active' : ''}" onclick="navPath=[];location.hash='#'+'${b.id}'">
       ${esc(b.name)} <span class="tab-count">${b.cardCount || 0}</span>
     </div>`
   ).join('') + `<button class="bs-add-board" onclick="createBoard()">+ Board</button>`;
@@ -1061,7 +1075,7 @@ function bindEvents() {
       saveCardPos(dragCard);
       if (!didDrag) {
         // If node has a sub-board, drill into it
-        if (dragCard.boardId) { drillIntoBoard(dragCard.boardId, dragCard.id); dragCard = null; return; }
+        if (dragCard.boardId) { drillIntoBoard(dragCard.boardId, dragCard.id, null); dragCard = null; return; }
         openPanel(dragCard);
       }
       dragCard = null;
@@ -1443,13 +1457,8 @@ async function navigateToRef(parentCard, refIndex) {
       setTimeout(() => openPanel(target), 450);
     }
   } else {
-    // Different board - switch board, then center on target card
-    await drillIntoBoard(ref.boardId);
-    const target = currentBoard.cards.find(c => c.id === ref.cardId);
-    if (target) {
-      centerOnCard(target);
-      setTimeout(() => openPanel(target), 450);
-    }
+    // Different board - drill into it and center on the target card
+    drillIntoBoard(ref.boardId, parentCard.id, ref.cardId);
   }
 }
 
