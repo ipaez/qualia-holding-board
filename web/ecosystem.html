@@ -227,7 +227,9 @@ canvas#ecoCanvas.connecting { cursor: crosshair; }
         <label>Notas</label>
         <textarea id="spNotes" style="min-height:80px"></textarea>
         <label>Tareas asociadas</label>
-        <div class="sp-task-count" id="spTasks">0 tareas</div>
+        <div id="spTasksCount" style="font-size:0.72rem;color:var(--text-tertiary);margin-bottom:6px"></div>
+        <div id="spTasksList" class="sp-init-list" style="max-height:260px;overflow-y:auto"></div>
+        <a id="spTasksLink" href="#" style="display:none;margin-top:8px;font-size:0.78rem;color:var(--gold);font-family:var(--font-body);text-decoration:none;transition:opacity .2s" onmouseover="this.style.opacity=0.7" onmouseout="this.style.opacity=1">Ver todas en Proyectos &rarr;</a>
         <label>Conexiones</label>
         <div class="sp-conn-list" id="spConns"></div>
       </div>
@@ -994,10 +996,47 @@ function openPanel(n) {
   renderTags();
   renderMetrics();
   renderInitiatives();
-  const count = tasks.filter(t => t.project && (n.name.toLowerCase().includes(t.project.toLowerCase().split(' ')[0]) || t.project === n.name)).length;
-  document.getElementById('spTasks').textContent = count + ' tareas';
+  renderTasks(n);
   renderNodeConns();
   document.getElementById('sidePanel').classList.add('open');
+}
+
+function renderTasks(n) {
+  const name = (n.name || '').toLowerCase();
+  const matched = tasks.filter(t => {
+    if (!t.project) return false;
+    const p = t.project.toLowerCase();
+    return p === name || name.includes(p.split(' ')[0]) || p.includes(name.split(' ')[0]);
+  });
+  const statusIcons = { todo: '#888', 'in-progress': '#3498db', blocked: '#f87171', done: '#2ecc71' };
+  const statusLabels = { todo: 'Pendiente', 'in-progress': 'En progreso', blocked: 'Bloqueado', done: 'Hecho' };
+  // Sort: in-progress first, then todo, blocked, done
+  const order = { 'in-progress': 0, todo: 1, blocked: 2, done: 3 };
+  matched.sort((a, b) => (order[a.status] ?? 1) - (order[b.status] ?? 1));
+
+  document.getElementById('spTasksCount').textContent = matched.length + ' tareas';
+  const list = document.getElementById('spTasksList');
+  const link = document.getElementById('spTasksLink');
+
+  if (!matched.length) {
+    list.innerHTML = '<span style="color:var(--text-tertiary);font-size:0.75rem">Sin tareas</span>';
+    link.style.display = 'none';
+    return;
+  }
+
+  list.innerHTML = matched.slice(0, 20).map(t => {
+    const sc = statusIcons[t.status] || '#888';
+    const sl = statusLabels[t.status] || t.status;
+    return `<div class="sp-init-row" style="padding:6px 10px">
+      <div style="width:8px;height:8px;border-radius:50%;background:${sc};flex-shrink:0"></div>
+      <span style="flex:1;font-size:0.8rem;color:var(--text-secondary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(t.title || '')}</span>
+      <span style="font-size:0.6rem;color:${sc};font-weight:600;font-family:var(--font-heading);text-transform:uppercase;letter-spacing:1px;white-space:nowrap">${sl}</span>
+    </div>`;
+  }).join('') + (matched.length > 20 ? `<div style="padding:6px 10px;font-size:0.72rem;color:var(--text-tertiary)">+ ${matched.length - 20} mas...</div>` : '');
+
+  // Link to projects view with project filter
+  link.style.display = 'block';
+  link.href = 'projects?project=' + encodeURIComponent(n.name);
 }
 
 function renderParentSelect() {
