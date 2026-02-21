@@ -386,6 +386,8 @@ async function init() {
     const found = boards.find(b => b.id === urlBoard);
     if (found) { await selectBoard(found.id); } else { autoSelect(); }
   } else { autoSelect(); }
+  // Set clean initial history state (no ghost states on reload)
+  history.replaceState({ boardId: currentBoard?.id, stack: [], focusNodeId: null }, '');
   bindEvents();
   animate();
 }
@@ -417,35 +419,23 @@ function drillIntoBoard(id, focusNodeId) {
       boardStack.push({ id: currentBoard.id, name: currentBoard.name, focusNodeId: focusNodeId || null });
     }
   }
+  // Replace current state so back button knows which node to focus
+  history.replaceState({ boardId: currentBoard?.id, stack: JSON.parse(JSON.stringify(boardStack.slice(0, -1))), focusNodeId: focusNodeId || null }, '');
   history.pushState({ boardId: id, stack: JSON.parse(JSON.stringify(boardStack)) }, '');
   return selectBoard(id);
 }
 
 async function navigateBreadcrumb(index) {
   const target = boardStack[index];
-  const focusId = target.focusNodeId;
   boardStack = boardStack.slice(0, index);
-  history.pushState({ boardId: target.id, stack: JSON.parse(JSON.stringify(boardStack)) }, '');
-  if (focusId) _skipCenterView = true;
-  await selectBoard(target.id);
-  if (focusId) {
-    const node = currentBoard.cards.find(c => c.id === focusId);
-    if (node) centerOnCard(node);
-  }
+  history.pushState({ boardId: target.id, stack: JSON.parse(JSON.stringify(boardStack)), focusNodeId: target.focusNodeId }, '');
+  await selectBoard(target.id, target.focusNodeId);
 }
 
 window.addEventListener('popstate', async (e) => {
   if (e.state && e.state.boardId) {
     boardStack = e.state.stack || [];
-    // Find focus node from the stack entry we're returning to
-    const popped = boardStack[boardStack.length - 1];
-    const focusId = popped?.focusNodeId;
-    if (focusId) _skipCenterView = true;
-    await selectBoard(e.state.boardId);
-    if (focusId) {
-      const node = currentBoard.cards.find(c => c.id === focusId);
-      if (node) centerOnCard(node);
-    }
+    await selectBoard(e.state.boardId, e.state.focusNodeId);
   }
 });
 
@@ -466,17 +456,19 @@ function renderBreadcrumb() {
   el.innerHTML = html;
 }
 
-let _skipCenterView = false;
-
-async function selectBoard(id) {
+async function selectBoard(id, focusNodeId) {
   currentBoard = await fetch(`${ECO_BAPI}/boards/${id}`).then(r => r.json());
   // Map nodes→cards for compatibility with brainstorm canvas engine
   if (!currentBoard.cards) currentBoard.cards = currentBoard.nodes || [];
   if (!currentBoard.connections) currentBoard.connections = [];
   initParticles();
   await resolveAllRefs();
-  if (_skipCenterView) _skipCenterView = false;
-  else centerView();
+  if (focusNodeId) {
+    const node = currentBoard.cards.find(c => c.id === focusNodeId);
+    if (node) centerOnCard(node); else centerView();
+  } else {
+    centerView();
+  }
   renderBoardTabs();
   document.getElementById('boardName').value = currentBoard.name;
   document.getElementById('emptyState').style.display = currentBoard.cards.length === 0 ? 'block' : 'none';
