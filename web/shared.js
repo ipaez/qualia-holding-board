@@ -199,7 +199,7 @@ function getNavHTML(active) {
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="11 17 6 12 11 7"/><polyline points="18 17 13 12 18 7"/></svg>
     <span>Colapsar</span>
   </div>
-  <div class="sidebar-version">v1.3.0</div>
+  <div class="sidebar-version">v1.4.0</div>
 </aside>
 <div class="mobile-hamburger" id="mobileHamburger" onclick="toggleMobileSidebar()">
   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>

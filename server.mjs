@@ -194,7 +194,21 @@ export default async function handler(req, res) {
 
     // GET /api/ecosystem/boards
     if (path === '/api/ecosystem/boards' && req.method === 'GET') {
-      return json(res, 200, ecoBoards.map(b => ({ id: b.id, name: b.name, created: b.created, nodeCount: (b.nodes||[]).length })));
+      return json(res, 200, ecoBoards.map(b => ({ id: b.id, name: b.name, created: b.created, cardCount: (b.nodes||[]).length, principalId: b.principalId || null })));
+    }
+
+    // POST /api/ecosystem/resolve-refs
+    if (path === '/api/ecosystem/resolve-refs' && req.method === 'POST') {
+      const body = await readBody(req);
+      const refs = body.refs || [];
+      const results = refs.map(ref => {
+        const board = ecoBoards.find(b => b.id === ref.boardId);
+        if (!board) return { boardId: ref.boardId, cardId: ref.cardId, found: false };
+        const card = (board.nodes || []).find(c => c.id === ref.cardId);
+        if (!card) return { boardId: ref.boardId, cardId: ref.cardId, found: false };
+        return { boardId: ref.boardId, cardId: ref.cardId, found: true, title: card.name, summary: card.description, color: card.color, boardName: board.name };
+      });
+      return json(res, 200, results);
     }
 
     // POST /api/ecosystem/boards
@@ -219,6 +233,7 @@ export default async function handler(req, res) {
       if (!board) return json(res, 404, { error: 'Not found' });
       const body = await readBody(req);
       if (body.name !== undefined) board.name = body.name;
+      if (body.principalId !== undefined) board.principalId = body.principalId;
       saveData(data);
       return json(res, 200, board);
     }
@@ -254,8 +269,8 @@ export default async function handler(req, res) {
         tags: body.tags || [],
         metrics: body.metrics || [],
         initiatives: body.initiatives || [],
-        childBoardId: body.childBoardId || null,
         projectName: body.projectName || '',
+        refs: body.refs || [],
       };
       if (!board.nodes) board.nodes = [];
       board.nodes.push(node);
@@ -271,7 +286,7 @@ export default async function handler(req, res) {
       const node = (board.nodes || []).find(n => n.id === ecoNodeMatch[2]);
       if (!node) return json(res, 404, { error: 'Node not found' });
       const body = await readBody(req);
-      for (const key of ['name','description','objective','notes','color','x','y','active','stage','revenue','agent','tags','metrics','initiatives','childBoardId','projectName']) {
+      for (const key of ['name','description','objective','notes','color','x','y','active','stage','revenue','agent','tags','metrics','initiatives','projectName','refs']) {
         if (body[key] !== undefined) node[key] = body[key];
       }
       saveData(data);

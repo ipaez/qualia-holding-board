@@ -13,7 +13,7 @@
       "deadline": null,
       "notes": "Section: Pipeline Prisma",
       "createdAt": "2026-02-21T12:38:46.451Z",
-      "updatedAt": "2026-02-21T12:38:46.451Z"
+      "updatedAt": "2026-02-21T19:10:20.396Z"
     },
     {
       "id": "387c9388-7817-4fda-9a8f-9d62f70f7f57",
@@ -43,7 +43,7 @@
       "deadline": null,
       "notes": "Section: Pipeline Prisma",
       "createdAt": "2026-02-21T12:38:46.451Z",
-      "updatedAt": "2026-02-21T12:38:46.451Z"
+      "updatedAt": "2026-02-21T19:10:37.749Z"
     },
     {
       "id": "1819051e-29e8-4782-a8db-6bc93a3684ff",
@@ -2390,8 +2390,8 @@
             "objective": "",
             "notes": "",
             "color": "#e74c3c",
-            "x": 42,
-            "y": 501,
+            "x": 158,
+            "y": 281,
             "active": true,
             "stage": "activo",
             "revenue": "$2k-5k/mo",
@@ -2414,7 +2414,15 @@
                 "label": "Modelo",
                 "value": "AaaS"
               }
-            ]
+            ],
+            "childBoardId": "04817482-7bf1-48c4-be18-6d1e9ee2bfb8",
+            "initiatives": [
+              {
+                "title": "",
+                "status": "pending"
+              }
+            ],
+            "projectName": ""
           },
           {
             "id": "qualia-wealth",
@@ -2456,8 +2464,8 @@
             "objective": "",
             "notes": "",
             "color": "#3498db",
-            "x": 85,
-            "y": 52,
+            "x": 285,
+            "y": 1229,
             "active": true,
             "stage": "mvp",
             "revenue": "Interno",
@@ -2479,7 +2487,14 @@
                 "label": "Estado",
                 "value": "Testing"
               }
-            ]
+            ],
+            "initiatives": [
+              {
+                "title": "HOLAAAA",
+                "status": "pending"
+              }
+            ],
+            "projectName": ""
           },
           {
             "id": "prisma-engine",
@@ -2578,7 +2593,14 @@
                 "label": "Formato",
                 "value": "Online"
               }
-            ]
+            ],
+            "initiatives": [
+              {
+                "title": "",
+                "status": "pending"
+              }
+            ],
+            "projectName": ""
           },
           {
             "id": "libro",
@@ -2636,6 +2658,13 @@
             "type": "content-flow"
           }
         ]
+      },
+      {
+        "id": "04817482-7bf1-48c4-be18-6d1e9ee2bfb8",
+        "name": "Qualia Academy",
+        "created": "2026-02-21T19:00:33.626Z",
+        "nodes": [],
+        "connections": []
       }
     ]
   },
@@ -2740,7 +2769,13 @@
             ],
             "icon": "idea",
             "x": 1876,
-            "y": -2
+            "y": -2,
+            "refs": [
+              {
+                "boardId": "2a4f325e",
+                "cardId": "c-df2ae3d1"
+              }
+            ]
           },
           {
             "id": "c-9bea49c4",
@@ -2885,8 +2920,8 @@
             "color": "#3498db",
             "tags": [],
             "icon": "idea",
-            "x": 400,
-            "y": -136,
+            "x": 335,
+            "y": -351,
             "parentId": "c-947fe431",
             "children": [],
             "refs": []
@@ -2900,8 +2935,8 @@
             "color": "#c9a94e",
             "tags": [],
             "icon": "idea",
-            "x": 1255,
-            "y": -546,
+            "x": 931,
+            "y": -449,
             "refs": []
           },
           {
@@ -2913,8 +2948,8 @@
             "color": "#c9a94e",
             "tags": [],
             "icon": "idea",
-            "x": -306,
-            "y": -311,
+            "x": -301,
+            "y": -303,
             "refs": []
           },
           {
@@ -3043,8 +3078,8 @@
             "color": "#f39c12",
             "tags": [],
             "icon": "idea",
-            "x": 1213,
-            "y": 475,
+            "x": 1208,
+            "y": 442,
             "refs": []
           },
           {
@@ -3056,8 +3091,8 @@
             "color": "#c9a94e",
             "tags": [],
             "icon": "idea",
-            "x": 1630,
-            "y": 628,
+            "x": 1610,
+            "y": 622,
             "refs": []
           },
           {
@@ -3069,8 +3104,8 @@
             "color": "#c9a94e",
             "tags": [],
             "icon": "idea",
-            "x": 2103,
-            "y": 639,
+            "x": 2072,
+            "y": 586,
             "refs": []
           },
           {
@@ -3082,8 +3117,21 @@
             "color": "#c9a94e",
             "tags": [],
             "icon": "idea",
-            "x": 2110,
-            "y": 904,
+            "x": 2044,
+            "y": 806,
+            "refs": []
+          },
+          {
+            "id": "c-47392a92",
+            "title": "Qualia Wealth",
+            "summary": "",
+            "detail": "",
+            "source": "",
+            "color": "#9b59b6",
+            "tags": [],
+            "icon": "idea",
+            "x": 1405,
+            "y": -166,
             "refs": []
           }
         ],
@@ -3225,6 +3273,13 @@
             "id": "cx-f04bc0e6",
             "from": "c-d6f7f85d",
             "to": "c-811a178c",
+            "label": "",
+            "detail": ""
+          },
+          {
+            "id": "cx-ef958c6b",
+            "from": "c-ce6f8f34",
+            "to": "c-d6f7f85d",
             "label": "",
             "detail": ""
           }
