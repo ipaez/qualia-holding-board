@@ -33,6 +33,22 @@ html, body { height: 100%; overflow: hidden; }
 }
 .bs-add-board:hover { color: var(--gold); border-color: rgba(201,169,78,0.3); }
 
+/* Breadcrumb */
+.bs-breadcrumb {
+  display: flex; align-items: center; gap: 4px; padding: 8px 22px;
+  border-bottom: 1px solid var(--border); background: rgba(17,19,24,0.6);
+  font-family: var(--font-body); font-size: 0.8rem; flex-shrink: 0;
+  overflow-x: auto;
+}
+.bs-breadcrumb .bc-item {
+  color: var(--text-tertiary); cursor: pointer; transition: color .15s;
+  white-space: nowrap; padding: 2px 6px; border-radius: 4px;
+}
+.bs-breadcrumb .bc-item:hover { color: var(--gold); background: var(--gold-glow); }
+.bs-breadcrumb .bc-sep { color: var(--text-tertiary); opacity: 0.3; font-size: 0.7rem; }
+.bs-breadcrumb .bc-current { color: var(--text-primary); font-weight: 600; cursor: default; }
+.bs-breadcrumb .bc-current:hover { background: none; color: var(--text-primary); }
+
 /* Toolbar */
 .bs-toolbar {
   display: flex; align-items: center; gap: 8px; padding: 8px 22px;
@@ -230,6 +246,7 @@ canvas#bsCanvas.connecting { cursor: crosshair; }
 <div class="qb-main" style="height:100vh">
 <div class="bs-wrap">
   <div class="bs-boards-bar" id="boardsBar"></div>
+  <div class="bs-breadcrumb" id="breadcrumb" style="display:none"></div>
   <div class="bs-toolbar">
     <input class="bs-board-name" id="boardName" value="" placeholder="Nombre del board...">
     <div style="width:1px;height:20px;background:var(--border);margin:0 6px"></div>
@@ -384,6 +401,42 @@ async function loadBoards() {
   boards = await fetch(`${ECO_BAPI}/boards`).then(r => r.json());
 }
 
+let boardStack = []; // [{id, name}] for breadcrumb navigation
+
+function drillIntoBoard(id) {
+  // Push current board to stack before navigating
+  if (currentBoard) {
+    // Avoid duplicates
+    if (!boardStack.length || boardStack[boardStack.length - 1].id !== currentBoard.id) {
+      boardStack.push({ id: currentBoard.id, name: currentBoard.name });
+    }
+  }
+  return selectBoard(id);
+}
+
+function navigateBreadcrumb(index) {
+  // Navigate to a specific point in the stack
+  const target = boardStack[index];
+  boardStack = boardStack.slice(0, index);
+  return selectBoard(target.id);
+}
+
+function renderBreadcrumb() {
+  const el = document.getElementById('breadcrumb');
+  if (boardStack.length === 0) {
+    el.style.display = 'none';
+    return;
+  }
+  el.style.display = 'flex';
+  let html = '';
+  boardStack.forEach((b, i) => {
+    html += `<span class="bc-item" onclick="navigateBreadcrumb(${i})">${esc(b.name)}</span>`;
+    html += `<span class="bc-sep">›</span>`;
+  });
+  html += `<span class="bc-item bc-current">${esc(currentBoard?.name || '')}</span>`;
+  el.innerHTML = html;
+}
+
 async function selectBoard(id) {
   currentBoard = await fetch(`${ECO_BAPI}/boards/${id}`).then(r => r.json());
   // Map nodes→cards for compatibility with brainstorm canvas engine
@@ -396,6 +449,7 @@ async function selectBoard(id) {
   document.getElementById('boardName').value = currentBoard.name;
   document.getElementById('emptyState').style.display = currentBoard.cards.length === 0 ? 'block' : 'none';
   closePanel();
+  renderBreadcrumb();
 }
 
 async function resolveAllRefs() {
@@ -429,7 +483,7 @@ async function deleteBoard(id) {
 function renderBoardTabs() {
   const bar = document.getElementById('boardsBar');
   bar.innerHTML = boards.map(b =>
-    `<div class="bs-board-tab ${currentBoard && b.id === currentBoard.id ? 'active' : ''}" onclick="selectBoard('${b.id}')">
+    `<div class="bs-board-tab ${currentBoard && b.id === currentBoard.id ? 'active' : ''}" onclick="boardStack=[];selectBoard('${b.id}')">
       ${esc(b.name)} <span class="tab-count">${b.cardCount || 0}</span>
     </div>`
   ).join('') + `<button class="bs-add-board" onclick="createBoard()">+ Board</button>`;
@@ -909,7 +963,11 @@ function bindEvents() {
     }
     if (dragCard) {
       saveCardPos(dragCard);
-      if (!didDrag) openPanel(dragCard);
+      if (!didDrag) {
+        // If node has a sub-board, drill into it
+        if (dragCard.boardId) { drillIntoBoard(dragCard.boardId); dragCard = null; return; }
+        openPanel(dragCard);
+      }
       dragCard = null;
     } else if (isPanning && !didDrag) {
       const conn = connAt(sx, sy);
@@ -1290,7 +1348,7 @@ async function navigateToRef(parentCard, refIndex) {
     }
   } else {
     // Different board - switch board, then center on target card
-    await selectBoard(ref.boardId);
+    await drillIntoBoard(ref.boardId);
     const target = currentBoard.cards.find(c => c.id === ref.cardId);
     if (target) {
       centerOnCard(target);
