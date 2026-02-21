@@ -35,18 +35,26 @@ html, body { height: 100%; overflow: hidden; }
 
 /* Breadcrumb */
 .bs-breadcrumb {
-  display: flex; align-items: center; gap: 4px; padding: 8px 22px;
-  border-bottom: 1px solid var(--border); background: rgba(17,19,24,0.6);
-  font-family: var(--font-body); font-size: 0.8rem; flex-shrink: 0;
+  display: flex; align-items: center; gap: 6px; padding: 10px 22px;
+  border-bottom: 1px solid var(--border); background: var(--bg-card);
+  font-family: var(--font-body); font-size: 0.85rem; flex-shrink: 0;
   overflow-x: auto;
 }
+.bs-breadcrumb .bc-back {
+  color: var(--gold); cursor: pointer; display: flex; align-items: center; gap: 4px;
+  padding: 4px 10px; border-radius: 6px; border: 1px solid rgba(201,169,78,0.2);
+  background: var(--gold-glow); font-size: 0.78rem; font-weight: 600;
+  transition: all .15s; margin-right: 6px;
+}
+.bs-breadcrumb .bc-back:hover { background: var(--gold-dim); border-color: rgba(201,169,78,0.4); }
 .bs-breadcrumb .bc-item {
-  color: var(--text-tertiary); cursor: pointer; transition: color .15s;
-  white-space: nowrap; padding: 2px 6px; border-radius: 4px;
+  color: var(--text-secondary); cursor: pointer; transition: all .15s;
+  white-space: nowrap; padding: 4px 8px; border-radius: 6px;
+  font-weight: 500;
 }
 .bs-breadcrumb .bc-item:hover { color: var(--gold); background: var(--gold-glow); }
-.bs-breadcrumb .bc-sep { color: var(--text-tertiary); opacity: 0.3; font-size: 0.7rem; }
-.bs-breadcrumb .bc-current { color: var(--text-primary); font-weight: 600; cursor: default; }
+.bs-breadcrumb .bc-sep { color: var(--text-tertiary); opacity: 0.4; font-size: 0.75rem; }
+.bs-breadcrumb .bc-current { color: var(--text-primary); font-weight: 700; cursor: default; }
 .bs-breadcrumb .bc-current:hover { background: none; color: var(--text-primary); }
 
 /* Toolbar */
@@ -409,18 +417,33 @@ function drillIntoBoard(id, focusNodeId) {
       boardStack.push({ id: currentBoard.id, name: currentBoard.name, focusNodeId: focusNodeId || null });
     }
   }
+  history.pushState({ boardId: id, stack: JSON.parse(JSON.stringify(boardStack)) }, '');
   return selectBoard(id);
 }
 
 async function navigateBreadcrumb(index) {
   const target = boardStack[index];
   boardStack = boardStack.slice(0, index);
+  history.pushState({ boardId: target.id, stack: JSON.parse(JSON.stringify(boardStack)) }, '');
   await selectBoard(target.id);
   if (target.focusNodeId) {
     const node = currentBoard.cards.find(c => c.id === target.focusNodeId);
     if (node) centerOnCard(node);
   }
 }
+
+window.addEventListener('popstate', async (e) => {
+  if (e.state && e.state.boardId) {
+    boardStack = e.state.stack || [];
+    await selectBoard(e.state.boardId);
+    // Focus on the node that was drilled into
+    const last = boardStack[boardStack.length - 1];
+    if (last && last.focusNodeId) {
+      const node = currentBoard.cards.find(c => c.id === last.focusNodeId);
+      if (node) centerOnCard(node);
+    }
+  }
+});
 
 function renderBreadcrumb() {
   const el = document.getElementById('breadcrumb');
@@ -429,7 +452,8 @@ function renderBreadcrumb() {
     return;
   }
   el.style.display = 'flex';
-  let html = '';
+  const backIdx = boardStack.length - 1;
+  let html = `<span class="bc-back" onclick="navigateBreadcrumb(${backIdx})">← Volver</span>`;
   boardStack.forEach((b, i) => {
     html += `<span class="bc-item" onclick="navigateBreadcrumb(${i})">${esc(b.name)}</span>`;
     html += `<span class="bc-sep">›</span>`;
