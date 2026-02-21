@@ -2652,8 +2652,8 @@
               "Startups"
             ],
             "icon": "idea",
-            "x": 90,
-            "y": -407
+            "x": -58,
+            "y": -479
           },
           {
             "id": "c-a5734089",
@@ -2668,8 +2668,8 @@
               "Lock-in"
             ],
             "icon": "idea",
-            "x": 476,
-            "y": -737
+            "x": 346,
+            "y": -866
           },
           {
             "id": "c-21f599a5",
@@ -2684,8 +2684,8 @@
               "MVP"
             ],
             "icon": "idea",
-            "x": -148,
-            "y": 365
+            "x": -141,
+            "y": 184
           },
           {
             "id": "c-80c4d1cb",
@@ -2700,8 +2700,8 @@
               "Setup"
             ],
             "icon": "idea",
-            "x": 994,
-            "y": -808
+            "x": 1035,
+            "y": -1036
           },
           {
             "id": "c-0ba759a4",
@@ -2716,8 +2716,8 @@
               "Flywheel"
             ],
             "icon": "idea",
-            "x": 753,
-            "y": -372
+            "x": 705,
+            "y": -415
           },
           {
             "id": "c-b57ae45d",
@@ -2732,8 +2732,8 @@
               "Pro Output"
             ],
             "icon": "idea",
-            "x": 1719,
-            "y": 165
+            "x": 1876,
+            "y": -2
           },
           {
             "id": "c-9bea49c4",
@@ -2748,8 +2748,8 @@
               "Customer Service"
             ],
             "icon": "idea",
-            "x": 1591,
-            "y": -788
+            "x": 1777,
+            "y": -855
           },
           {
             "id": "c-4ec1b5d9",
@@ -2764,8 +2764,8 @@
               "Setup"
             ],
             "icon": "idea",
-            "x": 989,
-            "y": 531
+            "x": 934,
+            "y": 315
           },
           {
             "id": "c-df2ae3d1",
@@ -2780,8 +2780,8 @@
               "Automatizacion"
             ],
             "icon": "idea",
-            "x": 617,
-            "y": 106
+            "x": 482,
+            "y": 108
           }
         ],
         "connections": [
@@ -2866,64 +2866,20 @@
       },
       {
         "id": "d4543e70",
-        "name": "Pruebaaaa",
+        "name": "Qualia Universe",
         "created": "2026-02-21T15:07:00.785Z",
         "cards": [
           {
-            "id": "c-7eb5aca8",
-            "title": "Nueva idea",
-            "summary": "",
-            "detail": "",
-            "source": "",
-            "color": "#c9a94e",
-            "tags": [],
-            "icon": "idea",
-            "x": 118,
-            "y": -177,
-            "parentId": null,
-            "children": [
-              "c-947fe431"
-            ],
-            "refs": [
-              {
-                "boardId": "d4543e70",
-                "cardId": "c-947fe431"
-              }
-            ]
-          },
-          {
-            "id": "c-947fe431",
-            "title": "Nueva idea",
-            "summary": "",
-            "detail": "",
-            "source": "",
-            "color": "#e67e22",
-            "tags": [],
-            "icon": "idea",
-            "x": 837,
-            "y": 78,
-            "parentId": "c-7eb5aca8",
-            "children": [
-              "c-9d545c7b"
-            ],
-            "refs": [
-              {
-                "boardId": "d4543e70",
-                "cardId": "c-9d545c7b"
-              }
-            ]
-          },
-          {
             "id": "c-9d545c7b",
-            "title": "Nueva idea",
+            "title": "Qualia Academy",
             "summary": "",
             "detail": "",
             "source": "",
-            "color": "#c9a94e",
+            "color": "#3498db",
             "tags": [],
             "icon": "idea",
-            "x": 180,
-            "y": 422,
+            "x": 130,
+            "y": -242,
             "parentId": "c-947fe431",
             "children": [],
             "refs": [
@@ -2934,22 +2890,7 @@
             ]
           }
         ],
-        "connections": [
-          {
-            "id": "cx-c5dd1a46",
-            "from": "c-7eb5aca8",
-            "to": "c-947fe431",
-            "label": "algo",
-            "detail": ""
-          },
-          {
-            "id": "cx-324c6b3d",
-            "from": "c-947fe431",
-            "to": "c-9d545c7b",
-            "label": "asd",
-            "detail": ""
-          }
-        ],
+        "connections": [],
         "principalId": "c-7eb5aca8"
       }
     ]

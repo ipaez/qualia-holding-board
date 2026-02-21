@@ -37,7 +37,7 @@ canvas#ecoCanvas.connecting { cursor: crosshair; }
 
 /* Side Panel */
 .side-panel {
-  position: absolute; top: 0; right: 0; width: 380px; height: 100%;
+  position: absolute; top: 0; right: 0; width: 400px; height: 100%;
   background: var(--bg-card); border-left: 1px solid var(--border);
   transform: translateX(100%); transition: transform .3s cubic-bezier(0.4,0,0.2,1); z-index: 10;
   display: flex; flex-direction: column; overflow-y: auto;
@@ -68,7 +68,7 @@ canvas#ecoCanvas.connecting { cursor: crosshair; }
   transition: border-color .2s;
 }
 .sp-body select { cursor: pointer; }
-.sp-body textarea { min-height: 60px; resize: vertical; }
+.sp-body textarea { min-height: 60px; resize: vertical; line-height: 1.5; }
 .sp-body input:focus, .sp-body textarea:focus, .sp-body select:focus { outline: none; border-color: var(--gold); box-shadow: 0 0 0 3px var(--gold-glow); }
 .sp-body .color-row { display: flex; align-items: center; gap: 10px; }
 .sp-body .color-row input[type=color] { width: 40px; height: 32px; padding: 2px; border-radius: 8px; cursor: pointer; border: 1px solid var(--border); background: var(--bg-base); }
@@ -96,10 +96,13 @@ canvas#ecoCanvas.connecting { cursor: crosshair; }
 .sp-conn-item {
   font-family: var(--font-body); font-size: 0.8rem; color: var(--text-secondary);
   padding: 8px 10px; display: flex; align-items: center; gap: 8px;
-  border-radius: 8px; transition: background .15s; margin: 2px 0;
+  border-radius: 8px; transition: background .15s; margin: 2px 0; cursor: pointer;
 }
 .sp-conn-item:hover { background: var(--bg-elevated); }
 .sp-conn-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+.sp-conn-item .del { margin-left: auto; opacity: 0; cursor: pointer; color: var(--red); font-size: 14px; transition: opacity .15s; }
+.sp-conn-item:hover .del { opacity: 0.6; }
+.sp-conn-item .del:hover { opacity: 1; }
 .sp-task-count { font-family: var(--font-heading); font-size: 1.1rem; color: var(--gold); font-weight: 700; }
 .sp-footer { padding: 16px 24px; border-top: 1px solid var(--border); display: flex; gap: 8px; flex-shrink: 0; }
 .sp-footer button {
@@ -110,6 +113,23 @@ canvas#ecoCanvas.connecting { cursor: crosshair; }
 .sp-footer .btn-del:hover { background: rgba(248,113,113,.15); }
 .sp-saved { font-size: 0.7rem; color: var(--green); opacity: 0; transition: opacity .3s; margin-left: 8px; font-family: var(--font-body); }
 .sp-saved.show { opacity: 1; }
+
+/* Initiative rows in panel */
+.sp-init-list { display: flex; flex-direction: column; gap: 4px; margin-top: 4px; }
+.sp-init-row {
+  display: flex; align-items: center; gap: 8px; padding: 8px 10px;
+  background: var(--bg-base); border: 1px solid var(--border); border-radius: var(--radius-sm);
+}
+.sp-init-row .init-status {
+  width: 10px; height: 10px; border-radius: 50%; cursor: pointer; flex-shrink: 0;
+  border: 2px solid var(--border); transition: all .15s;
+}
+.sp-init-row .init-status.active { background: var(--green); border-color: var(--green); }
+.sp-init-row .init-status.blocked { background: var(--red); border-color: var(--red); }
+.sp-init-row input { flex: 1; background: transparent; border: none; color: var(--text-primary); font-family: var(--font-body); font-size: 0.82rem; padding: 0; }
+.sp-init-row input:focus { outline: none; }
+.sp-init-row button { background: none; border: none; color: var(--red); cursor: pointer; font-size: 14px; opacity: 0.4; }
+.sp-init-row button:hover { opacity: 1; }
 
 @media (max-width: 700px) {
   .side-panel { width: 100%; border-left: none; border-top: 1px solid var(--border); top: auto; bottom: 0; height: 65%; transform: translateY(100%); }
@@ -141,6 +161,7 @@ canvas#ecoCanvas.connecting { cursor: crosshair; }
   </div>
   <div class="canvas-wrap">
     <canvas id="ecoCanvas"></canvas>
+    <!-- Node side panel -->
     <div class="side-panel" id="sidePanel">
       <div class="sp-header">
         <h3 id="spTitle">Proyecto</h3>
@@ -192,6 +213,9 @@ canvas#ecoCanvas.connecting { cursor: crosshair; }
         <label>Metricas</label>
         <div id="spMetricsList" class="sp-metrics-list"></div>
         <button class="sp-add-btn" id="spMetricAdd">+ Metrica</button>
+        <label>Iniciativas / Pendientes</label>
+        <div id="spInitList" class="sp-init-list"></div>
+        <button class="sp-add-btn" id="spInitAdd">+ Iniciativa</button>
         <label>Objetivo</label>
         <textarea id="spObj"></textarea>
         <label>Notas</label>
@@ -205,6 +229,35 @@ canvas#ecoCanvas.connecting { cursor: crosshair; }
         <button class="btn-del" id="spDelete">Eliminar proyecto</button>
       </div>
     </div>
+    <!-- Connection detail panel -->
+    <div class="side-panel" id="connPanel">
+      <div class="sp-header">
+        <h3 id="cpTitle">Conexion</h3>
+        <span class="sp-saved" id="cpSaved">Guardado</span>
+        <button class="sp-close" id="cpClose"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+      </div>
+      <div class="sp-body">
+        <label>Desde</label>
+        <div id="cpFrom" style="padding:8px 14px;background:var(--bg-base);border-radius:var(--radius-sm);font-size:0.85rem;color:var(--text-secondary);border:1px solid var(--border)"></div>
+        <label>Hacia</label>
+        <div id="cpTo" style="padding:8px 14px;background:var(--bg-base);border-radius:var(--radius-sm);font-size:0.85rem;color:var(--text-secondary);border:1px solid var(--border)"></div>
+        <label>Tipo</label>
+        <select id="cpType">
+          <option value="client-flow">Flujo de clientes</option>
+          <option value="dependency">Dependencia</option>
+          <option value="content-flow">Flujo de contenido</option>
+          <option value="revenue">Revenue</option>
+          <option value="strategic">Estrategico</option>
+        </select>
+        <label>Etiqueta</label>
+        <input type="text" id="cpLabel">
+        <label>Detalle / Explicacion</label>
+        <textarea id="cpDetail" style="min-height:160px" placeholder="Describe la relacion entre estos proyectos..."></textarea>
+      </div>
+      <div class="sp-footer">
+        <button class="btn-del" id="cpDelete">Eliminar conexion</button>
+      </div>
+    </div>
   </div>
 </div>
 
@@ -214,21 +267,26 @@ const CONN_COLORS = { 'client-flow': '#2ecc71', dependency: '#3498db', 'content-
 const CONN_LABELS = { 'client-flow': 'Flujo de clientes', dependency: 'Dependencia', 'content-flow': 'Flujo de contenido', revenue: 'Revenue', strategic: 'Estrategico' };
 const STAGE_COLORS = { idea: '#888', desarrollo: '#3498db', mvp: '#e67e22', activo: '#2ecc71', escalando: '#c9a94e', escritura: '#9b59b6', pausado: '#555' };
 const STAGE_LABELS = { idea: 'IDEA', desarrollo: 'DEV', mvp: 'MVP', activo: 'ACTIVO', escalando: 'SCALE', escritura: 'ESCR', pausado: 'PAUSA' };
+const INIT_ROW_H = 24;
 
 let nodes = [], connections = [], tasks = [];
 let canvas, ctx, W, H, dpr;
 let scale = 1, panX = 0, panY = 0;
 let dragNode = null, dragOffX = 0, dragOffY = 0, didDrag = false;
 let isPanning = false, panStartX = 0, panStartY = 0, panStartPX = 0, panStartPY = 0;
-let selectedNode = null;
+let selectedNode = null, selectedConn = null;
 let connectMode = false, connectFrom = null;
 let particles = [];
 let time = 0;
-let saveTimer = null;
-let hoverNode = null;
+let saveTimer = null, connSaveTimer = null;
+let hoverNode = null, hoverConn = null, hoverInit = null;
 
-// Card dimensions
-const NODE_W = 260, NODE_H = 170, NODE_R = 14;
+const NODE_W = 260, NODE_BASE_H = 170, NODE_R = 14;
+
+function nodeTotalH(n) {
+  const inits = n.initiatives || [];
+  return NODE_BASE_H + (inits.length > 0 ? 6 + inits.length * INIT_ROW_H + 8 : 0);
+}
 
 async function init() {
   canvas = document.getElementById('ecoCanvas');
@@ -244,9 +302,12 @@ async function init() {
   connections = eco.connections || [];
   tasks = t;
 
+  // Ensure initiatives array exists on all nodes
+  nodes.forEach(n => { if (!n.initiatives) n.initiatives = []; });
+
   if (nodes.length > 0) {
     const cx = nodes.reduce((s, n) => s + n.x, 0) / nodes.length + NODE_W / 2;
-    const cy = nodes.reduce((s, n) => s + n.y, 0) / nodes.length + NODE_H / 2;
+    const cy = nodes.reduce((s, n) => s + n.y, 0) / nodes.length + nodeTotalH(nodes[0]) / 2;
     panX = W / 2 - cx * scale;
     panY = H / 2 - cy * scale;
   }
@@ -285,8 +346,8 @@ function hex2rgba(hex, a) {
   const r = parseInt(hex.slice(1, 3), 16), g = parseInt(hex.slice(3, 5), 16), b = parseInt(hex.slice(5, 7), 16);
   return `rgba(${r},${g},${b},${a})`;
 }
-function rr(ctx, x, y, w, h, r) { ctx.beginPath(); ctx.roundRect(x, y, w, h, r); }
-function truncText(ctx, text, maxW) {
+function rr(x, y, w, h, r) { ctx.beginPath(); ctx.roundRect(x, y, w, h, r); }
+function truncText(text, maxW) {
   if (!text) return '';
   if (ctx.measureText(text).width <= maxW) return text;
   let t = text;
@@ -298,11 +359,43 @@ function bezierPt(x1, y1, cx1, cy1, cx2, cy2, x2, y2, t) {
   return [m*m*m*x1 + 3*m*m*t*cx1 + 3*m*t*t*cx2 + t*t*t*x2, m*m*m*y1 + 3*m*m*t*cy1 + 3*m*t*t*cy2 + t*t*t*y2];
 }
 function getConnPts(fromN, toN) {
-  const [x1, y1] = toScreen(fromN.x + NODE_W / 2, fromN.y + NODE_H / 2);
-  const [x2, y2] = toScreen(toN.x + NODE_W / 2, toN.y + NODE_H / 2);
+  const [x1, y1] = toScreen(fromN.x + NODE_W / 2, fromN.y + nodeTotalH(fromN) / 2);
+  const [x2, y2] = toScreen(toN.x + NODE_W / 2, toN.y + nodeTotalH(toN) / 2);
   const dx = x2 - x1, dist = Math.sqrt(dx * dx + (y2 - y1) ** 2);
   const bend = Math.min(dist * 0.35, 140);
   return { x1, y1, x2, y2, cx1: x1 + bend * Math.sign(dx || 1), cy1: y1, cx2: x2 - bend * Math.sign(dx || 1), cy2: y2 };
+}
+
+// --- Connection hit test ---
+function connAt(sx, sy) {
+  for (let i = connections.length - 1; i >= 0; i--) {
+    const c = connections[i];
+    const fromN = nodes.find(n => n.id === c.from), toN = nodes.find(n => n.id === c.to);
+    if (!fromN || !toN) continue;
+    const pts = getConnPts(fromN, toN);
+    for (let t = 0; t <= 1; t += 0.025) {
+      const [px, py] = bezierPt(pts.x1, pts.y1, pts.cx1, pts.cy1, pts.cx2, pts.cy2, pts.x2, pts.y2, t);
+      if (Math.sqrt((sx - px) ** 2 + (sy - py) ** 2) < 12) return c;
+    }
+  }
+  return null;
+}
+
+// --- Initiative row hit test ---
+function initRowAt(sx, sy) {
+  const [wx, wy] = toWorld(sx, sy);
+  for (let i = nodes.length - 1; i >= 0; i--) {
+    const n = nodes[i];
+    const inits = n.initiatives || [];
+    if (inits.length === 0) continue;
+    if (wx < n.x || wx > n.x + NODE_W) continue;
+    const rowStartY = n.y + NODE_BASE_H;
+    for (let ri = 0; ri < inits.length; ri++) {
+      const ry = rowStartY + ri * INIT_ROW_H;
+      if (wy >= ry && wy < ry + INIT_ROW_H) return { node: n, initIndex: ri };
+    }
+  }
+  return null;
 }
 
 // --- Grid ---
@@ -328,12 +421,17 @@ function drawConnections() {
     if (!fromN || !toN) return;
     const { x1, y1, x2, y2, cx1, cy1, cx2, cy2 } = getConnPts(fromN, toN);
     const color = CONN_COLORS[c.type] || '#555';
+    const isHover = c === hoverConn, isSel = c === selectedConn;
+    const connAlpha = isSel ? 0.2 : isHover ? 0.14 : 0.1;
+    const lineAlpha = isSel ? 0.6 : isHover ? 0.4 : 0.3;
+    const lineW = isSel ? 2.5 : isHover ? 2 : 1.5;
+
     ctx.save();
     // Glow
-    ctx.strokeStyle = hex2rgba(color, 0.1); ctx.lineWidth = 8;
+    ctx.strokeStyle = hex2rgba(color, connAlpha); ctx.lineWidth = isSel ? 14 : isHover ? 12 : 8;
     ctx.beginPath(); ctx.moveTo(x1, y1); ctx.bezierCurveTo(cx1, cy1, cx2, cy2, x2, y2); ctx.stroke();
     // Dashed line
-    ctx.strokeStyle = hex2rgba(color, 0.3); ctx.lineWidth = 1.5; ctx.setLineDash([8, 6]);
+    ctx.strokeStyle = hex2rgba(color, lineAlpha); ctx.lineWidth = lineW; ctx.setLineDash([8, 6]);
     ctx.beginPath(); ctx.moveTo(x1, y1); ctx.bezierCurveTo(cx1, cy1, cx2, cy2, x2, y2); ctx.stroke();
     ctx.setLineDash([]);
     // Arrow
@@ -352,9 +450,9 @@ function drawConnections() {
       ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
       const tw = ctx.measureText(c.label).width + 16;
       ctx.fillStyle = 'rgba(6,6,9,0.88)';
-      rr(ctx, lx - tw / 2, ly - 11, tw, 22, 11); ctx.fill();
+      rr(lx - tw / 2, ly - 11, tw, 22, 11); ctx.fill();
       ctx.strokeStyle = hex2rgba(color, 0.2); ctx.lineWidth = 1;
-      rr(ctx, lx - tw / 2, ly - 11, tw, 22, 11); ctx.stroke();
+      rr(lx - tw / 2, ly - 11, tw, 22, 11); ctx.stroke();
       ctx.fillStyle = hex2rgba(color, 0.7); ctx.fillText(c.label, lx, ly);
     }
     ctx.restore();
@@ -384,13 +482,14 @@ function drawConnections() {
 function drawNodes() {
   const t = time;
   nodes.forEach(n => {
+    const totalH = nodeTotalH(n);
     const [x, y] = toScreen(n.x, n.y);
-    const w = NODE_W * scale, h = NODE_H * scale, r = NODE_R * scale;
+    const w = NODE_W * scale, h = totalH * scale, baseH = NODE_BASE_H * scale, r = NODE_R * scale;
     const isHover = n === hoverNode;
     const isSel = n === selectedNode;
     const color = n.color || '#666';
     const pulse = 0.6 + 0.2 * Math.sin(t / 2000 + n.x * 0.01);
-    const s = scale; // shorthand
+    const s = scale;
 
     ctx.save();
 
@@ -398,7 +497,7 @@ function drawNodes() {
     if (isSel || isHover) {
       ctx.shadowColor = color; ctx.shadowBlur = 35;
       ctx.strokeStyle = hex2rgba(color, 0.2); ctx.lineWidth = 1;
-      rr(ctx, x - 3, y - 3, w + 6, h + 6, r + 3); ctx.stroke();
+      rr(x - 3, y - 3, w + 6, h + 6, r + 3); ctx.stroke();
       ctx.shadowBlur = 0;
     }
 
@@ -409,12 +508,12 @@ function drawNodes() {
     ctx.fillStyle = ag;
     ctx.fillRect(x - w * 0.2, y - h * 0.3, w * 1.4, h * 1.6);
 
-    // Card body
+    // Card body (full height including initiatives)
     const bg = ctx.createLinearGradient(x, y, x, y + h);
     bg.addColorStop(0, 'rgba(16,18,26,0.97)');
     bg.addColorStop(1, 'rgba(10,11,16,0.99)');
     ctx.fillStyle = bg;
-    rr(ctx, x, y, w, h, r); ctx.fill();
+    rr(x, y, w, h, r); ctx.fill();
 
     // Top color bar
     const topG = ctx.createLinearGradient(x, y, x + w, y);
@@ -423,19 +522,19 @@ function drawNodes() {
     topG.addColorStop(0.8, hex2rgba(color, isSel ? 0.9 : 0.6 * pulse));
     topG.addColorStop(1, hex2rgba(color, 0));
     ctx.fillStyle = topG;
-    rr(ctx, x, y, w, 2.5 * s, [r, r, 0, 0]); ctx.fill();
+    rr(x, y, w, 2.5 * s, [r, r, 0, 0]); ctx.fill();
 
     // Border
     ctx.strokeStyle = hex2rgba(color, isSel ? 0.5 : isHover ? 0.3 : 0.1);
     ctx.lineWidth = isSel ? 1.5 : 1;
-    rr(ctx, x, y, w, h, r); ctx.stroke();
+    rr(x, y, w, h, r); ctx.stroke();
 
     // Inner shine
-    const sh = ctx.createLinearGradient(x, y, x, y + h * 0.3);
+    const sh = ctx.createLinearGradient(x, y, x, y + baseH * 0.3);
     sh.addColorStop(0, 'rgba(255,255,255,0.03)');
     sh.addColorStop(1, 'transparent');
     ctx.fillStyle = sh;
-    rr(ctx, x, y, w, h * 0.3, [r, r, 0, 0]); ctx.fill();
+    rr(x, y, w, baseH * 0.3, [r, r, 0, 0]); ctx.fill();
 
     // --- Content layout ---
     const pad = 14 * s;
@@ -471,7 +570,7 @@ function drawNodes() {
     ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
     ctx.fillStyle = '#f0f0f2';
     const nameMaxW = contentW - 32 * s - (n.stage ? 50 * s : 0);
-    ctx.fillText(truncText(ctx, n.name, nameMaxW), nameX, row1Y);
+    ctx.fillText(truncText(n.name, nameMaxW), nameX, row1Y);
 
     // Stage badge (top right)
     if (n.stage) {
@@ -482,9 +581,9 @@ function drawNodes() {
       const stx = x + w - pad - stw;
       const sty = row1Y - 8 * s;
       ctx.fillStyle = hex2rgba(stageColor, 0.15);
-      rr(ctx, stx, sty, stw, 16 * s, 8 * s); ctx.fill();
+      rr(stx, sty, stw, 16 * s, 8 * s); ctx.fill();
       ctx.strokeStyle = hex2rgba(stageColor, 0.3); ctx.lineWidth = 0.8;
-      rr(ctx, stx, sty, stw, 16 * s, 8 * s); ctx.stroke();
+      rr(stx, sty, stw, 16 * s, 8 * s); ctx.stroke();
       ctx.fillStyle = stageColor;
       ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
       ctx.fillText(stageLabel, stx + stw / 2, sty + 8 * s);
@@ -495,7 +594,7 @@ function drawNodes() {
     ctx.font = `400 ${Math.max(8, 10 * s)}px Figtree, sans-serif`;
     ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
     ctx.fillStyle = 'rgba(255,255,255,0.4)';
-    ctx.fillText(truncText(ctx, n.description || '', contentW), contentX, row2Y);
+    ctx.fillText(truncText(n.description || '', contentW), contentX, row2Y);
 
     // Separator line
     const sepY = row2Y + 14 * s;
@@ -510,15 +609,13 @@ function drawNodes() {
       const mWidth = contentW / mCount;
       metrics.slice(0, 3).forEach((m, i) => {
         const mx = contentX + mWidth * i;
-        // Label
         ctx.font = `600 ${Math.max(6, 7.5 * s)}px Outfit, sans-serif`;
         ctx.fillStyle = 'rgba(255,255,255,0.25)';
         ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
         ctx.fillText((m.label || '').toUpperCase(), mx, row3Y);
-        // Value
         ctx.font = `600 ${Math.max(8, 10.5 * s)}px Figtree, sans-serif`;
         ctx.fillStyle = hex2rgba(color, 0.8);
-        ctx.fillText(truncText(ctx, m.value || '', mWidth - 6 * s), mx, row3Y + 13 * s);
+        ctx.fillText(truncText(m.value || '', mWidth - 6 * s), mx, row3Y + 13 * s);
       });
     }
 
@@ -532,7 +629,7 @@ function drawNodes() {
         const tw = ctx.measureText(tag).width + 10 * s;
         if (tx + tw > x + w - pad) return;
         ctx.fillStyle = hex2rgba(color, 0.08);
-        rr(ctx, tx, tagY - 7 * s, tw, 14 * s, 7 * s); ctx.fill();
+        rr(tx, tagY - 7 * s, tw, 14 * s, 7 * s); ctx.fill();
         ctx.fillStyle = hex2rgba(color, 0.6);
         ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
         ctx.fillText(tag, tx + 5 * s, tagY);
@@ -550,6 +647,75 @@ function drawNodes() {
       ctx.fillStyle = '#34d399'; ctx.fill();
     }
 
+    // --- Initiative rows integrated inside card ---
+    const inits = n.initiatives || [];
+    if (inits.length > 0) {
+      const initSepY = y + (NODE_BASE_H - 4) * s;
+      ctx.strokeStyle = 'rgba(255,255,255,0.06)'; ctx.lineWidth = 1;
+      ctx.beginPath(); ctx.moveTo(x + 10 * s, initSepY); ctx.lineTo(x + w - 10 * s, initSepY); ctx.stroke();
+
+      // "Iniciativas" mini label
+      ctx.font = `700 ${Math.max(5, 6.5 * s)}px Outfit, sans-serif`;
+      ctx.fillStyle = 'rgba(255,255,255,0.2)';
+      ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
+      ctx.fillText('INICIATIVAS', contentX, initSepY + 8 * s);
+
+      let rowY = initSepY + 14 * s;
+      inits.forEach((init, idx) => {
+        const rowH = INIT_ROW_H * s;
+        const isRowHover = hoverInit && hoverInit.node === n && hoverInit.initIndex === idx;
+
+        // Row background
+        if (isRowHover) {
+          ctx.fillStyle = 'rgba(255,255,255,0.06)';
+          rr(x + 4 * s, rowY, w - 8 * s, rowH, 4 * s); ctx.fill();
+        }
+
+        // Status dot
+        const statusColors = { pending: '#888', active: '#2ecc71', blocked: '#f87171', done: '#c9a94e' };
+        const dotColor = statusColors[init.status || 'pending'] || '#888';
+        ctx.beginPath(); ctx.arc(contentX + 5 * s, rowY + rowH / 2, 3.5 * s, 0, Math.PI * 2);
+        ctx.fillStyle = dotColor; ctx.fill();
+        if (init.status === 'active') {
+          ctx.beginPath(); ctx.arc(contentX + 5 * s, rowY + rowH / 2, 5 * s, 0, Math.PI * 2);
+          ctx.strokeStyle = hex2rgba('#2ecc71', 0.3); ctx.lineWidth = 0.8; ctx.stroke();
+        }
+
+        // Title
+        ctx.font = `500 ${Math.max(7, 9 * s)}px Figtree, sans-serif`;
+        ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
+        ctx.fillStyle = isRowHover ? '#fff' : (init.status === 'done' ? 'rgba(255,255,255,0.35)' : 'rgba(255,255,255,0.65)');
+        if (init.status === 'done') {
+          // Strikethrough for done
+          const text = truncText(init.title || '', contentW - 20 * s);
+          const textX = contentX + 14 * s;
+          ctx.fillText(text, textX, rowY + rowH / 2);
+          const tw = ctx.measureText(text).width;
+          ctx.strokeStyle = 'rgba(255,255,255,0.2)'; ctx.lineWidth = 0.8;
+          ctx.beginPath(); ctx.moveTo(textX, rowY + rowH / 2); ctx.lineTo(textX + tw, rowY + rowH / 2); ctx.stroke();
+        } else {
+          ctx.fillText(truncText(init.title || '', contentW - 20 * s), contentX + 14 * s, rowY + rowH / 2);
+        }
+
+        rowY += rowH;
+      });
+    }
+
+    // Initiative count badge (bottom right of base card if inits exist)
+    if (inits.length > 0) {
+      const doneCount = inits.filter(i => i.status === 'done').length;
+      const badge = `${doneCount}/${inits.length}`;
+      ctx.font = `600 ${Math.max(6, 7 * s)}px Outfit, sans-serif`;
+      const bw = ctx.measureText(badge).width + 10 * s;
+      const bx = x + w - pad - bw;
+      const by = y + (NODE_BASE_H - 14) * s;
+      ctx.fillStyle = hex2rgba(color, 0.1);
+      rr(bx, by, bw, 12 * s, 6 * s); ctx.fill();
+      ctx.fillStyle = hex2rgba(color, 0.5);
+      ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      ctx.fillText(badge, bx + bw / 2, by + 6 * s);
+    }
+
     ctx.restore();
   });
 }
@@ -562,7 +728,7 @@ function draw() {
   drawConnections();
   drawNodes();
   if (connectMode && connectFrom && connectMouseX != null) {
-    const [x1, y1] = toScreen(connectFrom.x + NODE_W / 2, connectFrom.y + NODE_H / 2);
+    const [x1, y1] = toScreen(connectFrom.x + NODE_W / 2, connectFrom.y + nodeTotalH(connectFrom) / 2);
     ctx.save();
     ctx.strokeStyle = '#c9a94e'; ctx.lineWidth = 2; ctx.setLineDash([8, 6]);
     ctx.shadowColor = '#c9a94e'; ctx.shadowBlur = 12;
@@ -578,7 +744,8 @@ function nodeAt(sx, sy) {
   const [wx, wy] = toWorld(sx, sy);
   for (let i = nodes.length - 1; i >= 0; i--) {
     const n = nodes[i];
-    if (wx >= n.x && wx <= n.x + NODE_W && wy >= n.y && wy <= n.y + NODE_H) return n;
+    const th = nodeTotalH(n);
+    if (wx >= n.x && wx <= n.x + NODE_W && wy >= n.y && wy <= n.y + th) return n;
   }
   return null;
 }
@@ -592,8 +759,7 @@ function bindEvents() {
       if (n) {
         if (!connectFrom) { connectFrom = n; }
         else if (n !== connectFrom) {
-          const label = prompt('Etiqueta de la conexion:', '');
-          if (label !== null) createConnection(connectFrom.id, n.id, label);
+          createConnectionFlow(connectFrom.id, n.id);
           connectMode = false; connectFrom = null;
           canvas.classList.remove('connecting');
           document.getElementById('btnNewConn').classList.remove('active');
@@ -623,19 +789,35 @@ function bindEvents() {
       if (Math.abs(nx - dragNode.x) > 3 || Math.abs(ny - dragNode.y) > 3) didDrag = true;
       dragNode.x = nx; dragNode.y = ny;
     } else if (isPanning) {
+      if (Math.abs(e.clientX - panStartX) > 3 || Math.abs(e.clientY - panStartY) > 3) didDrag = true;
       panX = panStartPX + (e.clientX - panStartX);
       panY = panStartPY + (e.clientY - panStartY);
     } else {
-      const n = nodeAt(sx, sy);
-      if (n !== hoverNode) { hoverNode = n; canvas.style.cursor = n ? 'pointer' : 'grab'; }
+      // Check initiative rows first
+      const ir = initRowAt(sx, sy);
+      if (ir) {
+        hoverInit = ir; hoverNode = ir.node; hoverConn = null;
+        canvas.style.cursor = 'pointer';
+      } else {
+        hoverInit = null;
+        const n = nodeAt(sx, sy);
+        if (n) { hoverNode = n; hoverConn = null; canvas.style.cursor = 'pointer'; }
+        else { hoverNode = null; const cn = connAt(sx, sy); hoverConn = cn; canvas.style.cursor = cn ? 'pointer' : 'grab'; }
+      }
     }
   });
 
-  canvas.addEventListener('mouseup', () => {
+  canvas.addEventListener('mouseup', e => {
+    const rect = canvas.getBoundingClientRect();
+    const sx = e.clientX - rect.left, sy = e.clientY - rect.top;
     if (dragNode) {
       saveNodePos(dragNode);
       if (!didDrag) openPanel(dragNode);
       dragNode = null;
+    } else if (isPanning && !didDrag) {
+      // Check if clicked on a connection
+      const conn = connAt(sx, sy);
+      if (conn) openConnPanel(conn);
     }
     isPanning = false;
     canvas.classList.remove('dragging');
@@ -660,7 +842,7 @@ function bindEvents() {
   document.getElementById('btnReset').addEventListener('click', () => {
     if (nodes.length > 0) {
       const cx = nodes.reduce((s, n) => s + n.x, 0) / nodes.length + NODE_W / 2;
-      const cy = nodes.reduce((s, n) => s + n.y, 0) / nodes.length + NODE_H / 2;
+      const cy = nodes.reduce((s, n) => s + n.y, 0) / nodes.length + NODE_BASE_H / 2;
       scale = 1; panX = W / 2 - cx; panY = H / 2 - cy;
     } else { scale = 1; panX = 0; panY = 0; }
     document.getElementById('zoomLabel').textContent = '100%';
@@ -670,14 +852,21 @@ function bindEvents() {
   document.getElementById('spTagAdd').addEventListener('click', addTag);
   document.getElementById('spTagInput').addEventListener('keydown', e => { if (e.key === 'Enter') addTag(); });
   document.getElementById('spMetricAdd').addEventListener('click', addMetric);
+  document.getElementById('spInitAdd').addEventListener('click', addInit);
+  document.getElementById('cpClose').addEventListener('click', closeConnPanel);
+  document.getElementById('cpDelete').addEventListener('click', deleteConn);
 
   ['spName', 'spDesc', 'spObj', 'spNotes', 'spColor', 'spStage', 'spRevenue', 'spAgent'].forEach(id => {
     document.getElementById(id).addEventListener('input', scheduleSave);
   });
+  ['cpLabel', 'cpDetail', 'cpType'].forEach(id => {
+    document.getElementById(id).addEventListener('input', scheduleConnSave);
+  });
 }
 
-// --- Panel ---
+// --- Node Panel ---
 function openPanel(n) {
+  closeConnPanel();
   selectedNode = n;
   document.getElementById('spTitle').textContent = n.name || 'Proyecto';
   document.getElementById('spName').value = n.name;
@@ -691,20 +880,28 @@ function openPanel(n) {
   document.getElementById('spAgent').value = n.agent || '';
   renderTags();
   renderMetrics();
+  renderInitiatives();
   const count = tasks.filter(t => t.project && (n.name.toLowerCase().includes(t.project.toLowerCase().split(' ')[0]) || t.project === n.name)).length;
   document.getElementById('spTasks').textContent = count + ' tareas';
-  const conns = connections.filter(c => c.from === n.id || c.to === n.id);
-  const el = document.getElementById('spConns');
-  if (!conns.length) { el.innerHTML = '<span style="color:var(--text-tertiary);font-size:0.75rem">Sin conexiones</span>'; }
-  else {
-    el.innerHTML = conns.map(c => {
-      const other = c.from === n.id ? nodes.find(x => x.id === c.to) : nodes.find(x => x.id === c.from);
-      const dir = c.from === n.id ? '&rarr;' : '&larr;';
-      return `<div class="sp-conn-item"><span class="sp-conn-dot" style="background:${CONN_COLORS[c.type] || '#555'}"></span>${dir} ${other?.name || '?'} <span style="color:var(--text-tertiary);font-size:0.72rem;margin-left:auto">${CONN_LABELS[c.type] || c.type}</span></div>`;
-    }).join('');
-  }
+  renderNodeConns();
   document.getElementById('sidePanel').classList.add('open');
 }
+
+function renderNodeConns() {
+  const conns = connections.filter(c => c.from === selectedNode.id || c.to === selectedNode.id);
+  const el = document.getElementById('spConns');
+  if (!conns.length) { el.innerHTML = '<span style="color:var(--text-tertiary);font-size:0.75rem">Sin conexiones</span>'; return; }
+  el.innerHTML = conns.map(c => {
+    const other = c.from === selectedNode.id ? nodes.find(x => x.id === c.to) : nodes.find(x => x.id === c.from);
+    const dir = c.from === selectedNode.id ? '&rarr;' : '&larr;';
+    return `<div class="sp-conn-item" onclick="openConnFromPanel('${c.id}')"><span class="sp-conn-dot" style="background:${CONN_COLORS[c.type] || '#555'}"></span>${dir} ${other?.name || '?'} <span style="color:var(--text-tertiary);font-size:0.72rem;margin-left:auto">${CONN_LABELS[c.type] || c.type}</span></div>`;
+  }).join('');
+}
+
+window.openConnFromPanel = function(connId) {
+  const conn = connections.find(c => c.id === connId);
+  if (conn) { closePanel(); openConnPanel(conn); }
+};
 
 function renderTags() {
   if (!selectedNode) return;
@@ -765,6 +962,50 @@ window.removeMetric = function(i) {
   scheduleSave();
 };
 
+// --- Initiatives ---
+function renderInitiatives() {
+  if (!selectedNode) return;
+  const inits = selectedNode.initiatives || [];
+  document.getElementById('spInitList').innerHTML = inits.map((init, i) => {
+    const statusClass = init.status || 'pending';
+    const nextStatus = { pending: 'active', active: 'done', done: 'blocked', blocked: 'pending' };
+    return `<div class="sp-init-row">
+      <div class="init-status ${statusClass}" title="${statusClass}" onclick="cycleInitStatus(${i})"></div>
+      <input type="text" value="${esc(init.title || '')}" onchange="updateInit(${i},this.value)" placeholder="Titulo de la iniciativa...">
+      <button onclick="removeInit(${i})">x</button>
+    </div>`;
+  }).join('');
+}
+
+function addInit() {
+  if (!selectedNode) return;
+  if (!selectedNode.initiatives) selectedNode.initiatives = [];
+  selectedNode.initiatives.push({ title: '', status: 'pending' });
+  renderInitiatives();
+  scheduleSave();
+}
+
+window.updateInit = function(i, val) {
+  if (!selectedNode || !selectedNode.initiatives) return;
+  selectedNode.initiatives[i].title = val;
+  scheduleSave();
+};
+
+window.cycleInitStatus = function(i) {
+  if (!selectedNode || !selectedNode.initiatives) return;
+  const next = { pending: 'active', active: 'done', done: 'blocked', blocked: 'pending' };
+  selectedNode.initiatives[i].status = next[selectedNode.initiatives[i].status || 'pending'];
+  renderInitiatives();
+  scheduleSave();
+};
+
+window.removeInit = function(i) {
+  if (!selectedNode || !selectedNode.initiatives) return;
+  selectedNode.initiatives.splice(i, 1);
+  renderInitiatives();
+  scheduleSave();
+};
+
 function closePanel() {
   document.getElementById('sidePanel').classList.remove('open');
   selectedNode = null;
@@ -785,6 +1026,7 @@ async function savePanel() {
     agent: document.getElementById('spAgent').value,
     tags: selectedNode.tags || [],
     metrics: selectedNode.metrics || [],
+    initiatives: selectedNode.initiatives || [],
   };
   Object.assign(selectedNode, body);
   document.getElementById('spTitle').textContent = body.name || 'Proyecto';
@@ -801,6 +1043,7 @@ async function saveNodePos(n) {
 async function createNode() {
   const r = await fetch(`${ECO_API}/ecosystem/nodes`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({}) });
   const node = await r.json();
+  if (!node.initiatives) node.initiatives = [];
   nodes.push(node);
   openPanel(node);
 }
@@ -813,7 +1056,9 @@ async function deleteNode() {
   initParticles(); closePanel();
 }
 
-async function createConnection(fromId, toId, label) {
+async function createConnectionFlow(fromId, toId) {
+  const label = prompt('Etiqueta de la conexion:', '');
+  if (label === null) return;
   const tc = prompt('Tipo (1=Clientes, 2=Dependencia, 3=Contenido, 4=Revenue, 5=Estrategico):', '1');
   const types = { '1': 'client-flow', '2': 'dependency', '3': 'content-flow', '4': 'revenue', '5': 'strategic' };
   const type = types[tc] || 'strategic';
@@ -821,6 +1066,54 @@ async function createConnection(fromId, toId, label) {
   const conn = await r.json();
   connections.push(conn);
   addParticlesForConn(conn.id);
+  // Auto-open connection panel for the new connection
+  openConnPanel(conn);
+}
+
+// --- Connection Panel ---
+function openConnPanel(conn) {
+  closePanel();
+  selectedConn = conn;
+  const fromN = nodes.find(n => n.id === conn.from);
+  const toN = nodes.find(n => n.id === conn.to);
+  document.getElementById('cpTitle').textContent = conn.label || 'Conexion';
+  document.getElementById('cpFrom').textContent = fromN?.name || '?';
+  document.getElementById('cpTo').textContent = toN?.name || '?';
+  document.getElementById('cpType').value = conn.type || 'strategic';
+  document.getElementById('cpLabel').value = conn.label || '';
+  document.getElementById('cpDetail').value = conn.detail || '';
+  document.getElementById('connPanel').classList.add('open');
+}
+
+function closeConnPanel() {
+  document.getElementById('connPanel').classList.remove('open');
+  selectedConn = null;
+}
+
+function scheduleConnSave() { clearTimeout(connSaveTimer); connSaveTimer = setTimeout(saveConnPanel, 400); }
+
+async function saveConnPanel() {
+  if (!selectedConn) return;
+  const body = {
+    label: document.getElementById('cpLabel').value,
+    detail: document.getElementById('cpDetail').value,
+    type: document.getElementById('cpType').value,
+  };
+  selectedConn.label = body.label;
+  selectedConn.detail = body.detail;
+  selectedConn.type = body.type;
+  document.getElementById('cpTitle').textContent = body.label || 'Conexion';
+  await fetch(`${ECO_API}/ecosystem/connections/${selectedConn.id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+  const saved = document.getElementById('cpSaved');
+  saved.classList.add('show'); setTimeout(() => saved.classList.remove('show'), 1500);
+}
+
+async function deleteConn() {
+  if (!selectedConn || !confirm('Eliminar esta conexion?')) return;
+  await fetch(`${ECO_API}/ecosystem/connections/${selectedConn.id}`, { method: 'DELETE' });
+  connections = connections.filter(c => c.id !== selectedConn.id);
+  particles = particles.filter(p => p.connId !== selectedConn.id);
+  closeConnPanel();
 }
 
 init();

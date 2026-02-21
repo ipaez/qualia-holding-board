@@ -206,6 +206,7 @@ export default async function handler(req, res) {
         agent: body.agent || '',
         tags: body.tags || [],
         metrics: body.metrics || [],
+        initiatives: body.initiatives || [],
       };
       data.ecosystem.nodes.push(node);
       saveData(data);
@@ -218,7 +219,7 @@ export default async function handler(req, res) {
       const node = data.ecosystem.nodes.find(n => n.id === ecoNodeMatch[1]);
       if (!node) return json(res, 404, { error: 'Not found' });
       const body = await readBody(req);
-      for (const key of ['name','description','objective','notes','color','x','y','active','stage','revenue','agent','tags','metrics']) {
+      for (const key of ['name','description','objective','notes','color','x','y','active','stage','revenue','agent','tags','metrics','initiatives']) {
         if (body[key] !== undefined) node[key] = body[key];
       }
       saveData(data);
@@ -244,6 +245,7 @@ export default async function handler(req, res) {
         to: body.to,
         label: body.label || '',
         type: body.type || 'strategic',
+        detail: body.detail || '',
       };
       data.ecosystem.connections.push(conn);
       saveData(data);
@@ -256,7 +258,7 @@ export default async function handler(req, res) {
       const conn = data.ecosystem.connections.find(c => c.id === ecoConnMatch[1]);
       if (!conn) return json(res, 404, { error: 'Not found' });
       const body = await readBody(req);
-      for (const key of ['from','to','label','type']) {
+      for (const key of ['from','to','label','type','detail']) {
         if (body[key] !== undefined) conn[key] = body[key];
       }
       saveData(data);
