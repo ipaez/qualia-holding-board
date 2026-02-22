@@ -167,9 +167,9 @@
 
 <script>
 let tasks = [], projects = [], agents = [];
-const statusOrder = ['in-progress', 'ready', 'idea', 'blocked'];
-const statusLabels = { 'idea': 'Ideas', 'ready': 'Ready', 'in-progress': 'En progreso', 'blocked': 'Bloqueadas' };
-const statusColors = { 'idea': '#666', 'ready': '#c9a94e', 'in-progress': '#3498db', 'blocked': '#e74c3c' };
+const statusOrder = ['in-progress', 'todo', 'backlog', 'blocked'];
+const statusLabels = { 'backlog': 'Backlog', 'todo': 'Todo', 'in-progress': 'En progreso', 'blocked': 'Bloqueadas' };
+const statusColors = { 'backlog': '#666', 'todo': '#c9a94e', 'in-progress': '#3498db', 'blocked': '#e74c3c' };
 const prioOrder = { 'high': 0, 'medium': 1, 'low': 2 };
 
 async function load() {
@@ -234,7 +234,7 @@ function render() {
                     <span class="task-row-type">${esc(t.type)}</span>
                     <span class="task-row-agent">@${esc(t.agent)}</span>
                     <select class="quick-status" onclick="event.stopPropagation()" onchange="quickMove('${t.id}', this.value)">
-                      ${['idea','ready','in-progress','blocked','done'].map(s => `<option value="${s}"${s===t.status?' selected':''}>${s==='in-progress'?'En progreso':s==='blocked'?'Bloqueada':s==='done'?'Done':s.charAt(0).toUpperCase()+s.slice(1)}</option>`).join('')}
+                      ${['backlog','todo','in-progress','blocked','done'].map(s => `<option value="${s}"${s===t.status?' selected':''}>${s==='in-progress'?'En progreso':s==='blocked'?'Bloqueada':s==='done'?'Done':s.charAt(0).toUpperCase()+s.slice(1)}</option>`).join('')}
                     </select>
                   </div>
                 `).join('')}

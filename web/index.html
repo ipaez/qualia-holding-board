@@ -139,7 +139,7 @@ async function init() {
   const active = tasks.filter(t => t.status !== 'done');
   const blocked = active.filter(t => t.status === 'blocked');
   const inProgress = active.filter(t => t.status === 'in-progress');
-  const highUnassigned = active.filter(t => t.priority === 'high' && t.status === 'idea');
+  const highUnassigned = active.filter(t => t.priority === 'high' && t.status === 'backlog');
   const activeProjects = [...new Set(active.map(t => t.project))];
 
   // KPIs
@@ -159,7 +159,7 @@ async function init() {
   });
 
   highUnassigned.forEach(t => {
-    attItems.push({ task: t, type: 'high', tag: 'Alta prioridad', detail: 'En ideas, sin avanzar', cls: 'att-high', tagCls: 'tag-high' });
+    attItems.push({ task: t, type: 'high', tag: 'Alta prioridad', detail: 'En backlog, sin avanzar', cls: 'att-high', tagCls: 'tag-high' });
   });
 
   // Deadline within 7 days
@@ -187,9 +187,9 @@ async function init() {
 
   // Project grid
   const grid = document.getElementById('projectGrid');
-  const statusOrder = ['in-progress', 'ready', 'idea', 'blocked'];
-  const statusColors = { 'idea': '#666', 'ready': '#c9a94e', 'in-progress': '#3498db', 'blocked': '#e74c3c' };
-  const statusLabels = { 'idea': 'Ideas', 'ready': 'Ready', 'in-progress': 'Progreso', 'blocked': 'Bloq.' };
+  const statusOrder = ['in-progress', 'todo', 'backlog', 'blocked'];
+  const statusColors = { 'backlog': '#666', 'todo': '#c9a94e', 'in-progress': '#3498db', 'blocked': '#e74c3c' };
+  const statusLabels = { 'backlog': 'Backlog', 'todo': 'Todo', 'in-progress': 'Progreso', 'blocked': 'Bloq.' };
 
   grid.innerHTML = activeProjects.sort().map(proj => {
     const pTasks = active.filter(t => t.project === proj);

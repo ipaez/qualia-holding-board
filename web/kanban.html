@@ -68,13 +68,13 @@
 </div>
 
 <div class="board" id="board">
-  <div class="column" data-status="idea">
-    <div class="column-header"><span class="column-title">Ideas</span><span class="column-count" id="count-idea">0</span></div>
-    <div class="column-body" id="col-idea"></div>
+  <div class="column" data-status="backlog">
+    <div class="column-header"><span class="column-title">Backlog</span><span class="column-count" id="count-backlog">0</span></div>
+    <div class="column-body" id="col-backlog"></div>
   </div>
-  <div class="column" data-status="ready">
-    <div class="column-header"><span class="column-title">Ready</span><span class="column-count" id="count-ready">0</span></div>
-    <div class="column-body" id="col-ready"></div>
+  <div class="column" data-status="todo">
+    <div class="column-header"><span class="column-title">Todo</span><span class="column-count" id="count-todo">0</span></div>
+    <div class="column-body" id="col-todo"></div>
   </div>
   <div class="column" data-status="in-progress">
     <div class="column-header"><span class="column-title">En progreso</span><span class="column-count" id="count-in-progress">0</span></div>
@@ -123,7 +123,7 @@ function getFiltered() {
 
 function render() {
   const filtered = getFiltered();
-  for (const status of ['idea','ready','in-progress','blocked']) {
+  for (const status of ['backlog','todo','in-progress','blocked']) {
     const col = document.getElementById('col-' + status);
     const items = filtered.filter(t => t.status === status);
     document.getElementById('count-' + status).textContent = items.length;

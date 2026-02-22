@@ -138,7 +138,7 @@ function render() {
 }
 
 async function reopen(id) {
-  await fetch(`${API}/tasks/${id}/move`, { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({status:'idea'}) });
+  await fetch(`${API}/tasks/${id}/move`, { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({status:'backlog'}) });
   await load();
 }
 

@@ -111,12 +111,16 @@ function esc(s) {
 let _tasks = [], _projects = [], _agents = [];
 
 async function loadData() {
-  [_tasks, _projects, _agents] = await Promise.all([
+  [_tasks, _projects] = await Promise.all([
     fetch(`${API}/tasks`).then(r => r.json()),
     fetch(`${API}/projects`).then(r => r.json()),
-    fetch(`${API}/agents`).then(r => r.json()),
   ]);
-  return { tasks: _tasks, projects: _projects, agents: _agents };
+  // Projects are now objects {id, name} - extract names for compat
+  const projectNames = _projects.map(p => typeof p === 'string' ? p : p.name);
+  // Derive agents from tasks
+  const agentSet = new Set(_tasks.map(t => t.agent).filter(Boolean));
+  _agents = [...agentSet].sort();
+  return { tasks: _tasks, projects: projectNames, agents: _agents };
 }
 
 // Modal
@@ -161,7 +165,7 @@ function openCreateModal(projects) {
   document.getElementById('fAgentInfo').style.display = 'none';
   document.getElementById('fPriority').value = 'medium';
   document.getElementById('fType').value = 'feature';
-  document.getElementById('fStatus').value = 'idea';
+  document.getElementById('fStatus').value = 'backlog';
   document.getElementById('fDeadline').value = '';
   document.getElementById('fBlockedBy').value = '';
   document.getElementById('fNotes').value = '';
@@ -229,7 +233,7 @@ function getModalHTML() {
         <select id="fType"><option value="feature">Feature</option><option value="fix">Fix</option><option value="infra">Infra</option><option value="idea">Idea</option></select>
       </div>
       <div><label>Status</label>
-        <select id="fStatus"><option value="idea">Idea</option><option value="ready">Ready</option><option value="in-progress">En progreso</option><option value="blocked">Bloqueada</option><option value="done">Done</option></select>
+        <select id="fStatus"><option value="backlog">Backlog</option><option value="todo">Todo</option><option value="in-progress">En progreso</option><option value="blocked">Bloqueada</option><option value="done">Done</option></select>
       </div>
       <div><label>Deadline</label><input type="date" id="fDeadline"></div>
     </div>

@@ -72,9 +72,9 @@
   transition: all .2s; flex-shrink: 0;
 }
 .status-indicator:hover { border-color: var(--gold); }
-.status-indicator.idea { border-color: var(--text-tertiary); }
-.status-indicator.ready { border-color: var(--gold); background: var(--gold-dim); }
-.status-indicator.ready::after { content: '▸'; color: var(--gold); font-size: 0.8rem; font-weight: 700; }
+.status-indicator.backlog { border-color: var(--text-tertiary); }
+.status-indicator.todo { border-color: var(--gold); background: var(--gold-dim); }
+.status-indicator.todo::after { content: '▸'; color: var(--gold); font-size: 0.8rem; font-weight: 700; }
 .status-indicator.in-progress { border-color: var(--cyan); background: rgba(6,214,214,0.1); border-style: dashed; animation: spin 3s linear infinite; }
 .status-indicator.in-progress::after { content: '◦'; color: var(--cyan); font-size: 1rem; }
 .status-indicator.blocked { border-color: var(--red); background: rgba(248,113,113,0.1); }
@@ -135,8 +135,8 @@
   <select id="filterProject"><option value="">Todos los proyectos</option></select>
   <select id="filterStatus">
     <option value="">Todos los estados</option>
-    <option value="idea">Idea</option>
-    <option value="ready">Ready</option>
+    <option value="backlog">Backlog</option>
+    <option value="todo">Todo</option>
     <option value="in-progress">En progreso</option>
     <option value="blocked">Bloqueada</option>
     <option value="done">Done</option>
@@ -165,8 +165,8 @@
 let tasks = [], projects = [], agents = [];
 let groupBy = 'none';
 
-const STATUS_LABELS = { 'idea': 'Idea', 'ready': 'Ready', 'in-progress': 'En progreso', 'blocked': 'Bloqueada', 'done': 'Completada' };
-const STATUS_ORDER = { 'in-progress': 0, 'blocked': 1, 'ready': 2, 'idea': 3, 'done': 4 };
+const STATUS_LABELS = { 'backlog': 'Backlog', 'todo': 'Todo', 'in-progress': 'En progreso', 'blocked': 'Bloqueada', 'done': 'Completada' };
+const STATUS_ORDER = { 'in-progress': 0, 'blocked': 1, 'todo': 2, 'backlog': 3, 'done': 4 };
 
 let _refreshing = false;
 async function refresh() {
@@ -229,7 +229,7 @@ function render() {
   // Stats
   const stats = {};
   for (const t of tasks) stats[t.status] = (stats[t.status] || 0) + 1;
-  const colors = { 'in-progress': 'var(--cyan)', 'blocked': 'var(--red)', 'idea': 'var(--text-tertiary)', 'ready': 'var(--gold)', 'done': 'var(--green)' };
+  const colors = { 'in-progress': 'var(--cyan)', 'blocked': 'var(--red)', 'backlog': 'var(--text-tertiary)', 'todo': 'var(--gold)', 'done': 'var(--green)' };
   document.getElementById('topStats').innerHTML = Object.entries(stats)
     .sort(([a],[b]) => (STATUS_ORDER[a]??3) - (STATUS_ORDER[b]??3))
     .map(([s, n]) => `<div class="stat-badge"><div class="dot" style="background:${colors[s]||'#666'}"></div>${STATUS_LABELS[s]||s}: ${n}</div>`).join('');
@@ -265,7 +265,7 @@ function render() {
   });
 }
 
-const STATUS_CYCLE = ['idea', 'ready', 'in-progress', 'blocked', 'done'];
+const STATUS_CYCLE = ['backlog', 'todo', 'in-progress', 'blocked', 'done'];
 let _undoTimer = null;
 
 async function cycleStatus(id) {
