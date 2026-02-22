@@ -13,5 +13,9 @@
   },
   "brainstorm": {
     "boards": []
+  },
+  "config": {
+    "workspacesBase": "~/.openclaw",
+    "backlogFilename": "BACKLOG.md"
   }
 }

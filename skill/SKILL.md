@@ -1,169 +1,139 @@
-# Skill: Qualia Holding Board Manager
+# Skill: Holding Board Manager
 
-## Descripción
-Gestionar el Qualia Holding Board — task board visual con ecosistema, brainstorm, kanban, cockpit y proyectos. El agente que use este skill puede crear/editar tareas, nodos del ecosistema, boards de brainstorm y proyectos via API.
+## Descripcion
+Gestionar un Holding Board - sistema visual de nodos con backlog sincronizado bidireccional con agentes AI. El board organiza empresas, negocios y proyectos como un arbol de nodos generico. Los agentes trabajan con su BACKLOG.md y el sistema sincroniza automaticamente.
+
+## Conceptos clave
+
+### Tres capas independientes
+1. **Nodos** - arbol flexible, solo estructura visual. Sub-nodos, info, links. No saben de agentes.
+2. **Agentes + Backlog** - cada agente tiene su BACKLOG.md con items agrupados por proyecto.
+3. **Proyectos** - el pegamento. Un proyecto tiene un nombre y un agente asignado. Al asociar proyectos a un nodo, el nodo hereda visibilidad del backlog correspondiente.
+
+### Estados del backlog
+- `backlog` - anotado, por aterrizar
+- `todo` - aterrizado y listo para tomar
+- `in-progress` - en ejecucion
+- `blocked` - falta input del usuario
+- `done` - completado
+
+### Sync bidireccional
+- Agente edita BACKLOG.md → se refleja en el board
+- Usuario mueve algo en el board → se escribe al BACKLOG.md del agente
+- Los agentes no saben que existe el holding. Solo ven su backlog.
 
 ## API Base
-El board corre dentro de QualIA Hub. Base URL: `http://127.0.0.1:18795/qualia-board`
+Base URL: `http://127.0.0.1:18795/qualia-board`
 
 ## Endpoints
 
 ### Tasks
-- `GET /api/tasks` — Lista todas las tareas. Query params: `?project=X&status=Y`
-- `POST /api/tasks` — Crear tarea. Body: `{title, project, status, priority, description}`
-- `PUT /api/tasks/:id` — Editar tarea
-- `DELETE /api/tasks/:id` — Eliminar tarea
+- `GET /api/tasks` - Lista tareas. Query: `?status=X&project=Y&agent=Z&priority=P`
+- `POST /api/tasks` - Crear tarea. Body: `{title, project, agent, status, description, priority, type}`
+- `PUT /api/tasks/:id` - Editar tarea
+- `DELETE /api/tasks/:id` - Eliminar tarea
+- `POST /api/tasks/:id/move` - Cambiar status. Body: `{status}`
 
-Status válidos: `backlog`, `todo`, `in-progress`, `review`, `done`
+Status validos: `backlog`, `todo`, `in-progress`, `blocked`, `done`
 Prioridades: `critical`, `high`, `medium`, `low`
 
 ### Projects
-- `GET /api/projects` — Lista nombres de proyectos
-- `POST /api/projects` — Crear proyecto. Body: `{name}`
-- `PUT /api/projects/:name` — Renombrar. Body: `{name: "nuevo nombre"}`
-- `DELETE /api/projects/:name` — Eliminar proyecto (y sus tareas)
+Proyectos son el pegamento entre nodos y backlogs de agentes.
 
-### Ecosystem
-Boards recursivos con nodos y conexiones en canvas visual.
+- `GET /api/projects` - Lista proyectos (objetos con id, name, agent)
+- `POST /api/projects` - Crear. Body: `{name, agent}`
+- `PUT /api/projects/:id` - Editar. Body: `{name, agent}`
+- `DELETE /api/projects/:id` - Eliminar
 
-- `GET /api/ecosystem/boards` — Lista todos los boards
-- `GET /api/ecosystem/boards/:bid` — Un board específico
-- `POST /api/ecosystem/boards` — Crear board. Body: `{name}`
-- `PUT /api/ecosystem/boards/:bid` — Editar board
-- `DELETE /api/ecosystem/boards/:bid` — Eliminar board
+Ejemplo:
+```json
+{"id": "iq-setup", "name": "IQ Setup", "agent": "infraqualia"}
+```
 
-#### Nodos (dentro de un board)
-- `POST /api/ecosystem/boards/:bid/nodes` — Crear nodo. Body: `{name, x, y, w, h, color, desc, stage, agent, projectName}`
-- `PUT /api/ecosystem/boards/:bid/nodes/:nid` — Editar nodo
-- `DELETE /api/ecosystem/boards/:bid/nodes/:nid` — Eliminar nodo
+### Scope (filtrado por nodo)
+- `GET /api/nodes/:boardId/:nodeId/backlog` - Backlog filtrado para un nodo y todos sus descendientes. Retorna `{projects, tasks}`.
+- `GET /api/nodes/:boardId/:nodeId/tree` - Arbol completo del nodo con sub-nodos resueltos.
+
+Ejemplo: `GET /api/nodes/root/n-academy/backlog` retorna todas las tareas de Qualia Academy y sus sub-nodos.
+
+### Ecosystem (arbol de nodos)
+- `GET /api/ecosystem/boards` - Lista boards
+- `GET /api/ecosystem/boards/:id` - Un board
+- `POST /api/ecosystem/boards` - Crear board. Body: `{name}`
+- `PUT /api/ecosystem/boards/:id` - Editar board
+- `DELETE /api/ecosystem/boards/:id` - Eliminar (no root)
+
+#### Nodos
+- `POST /api/ecosystem/boards/:bid/nodes` - Crear nodo
+- `PUT /api/ecosystem/boards/:bid/nodes/:nid` - Editar nodo
+- `DELETE /api/ecosystem/boards/:bid/nodes/:nid` - Eliminar nodo
 
 Campos del nodo:
-- `name` (string) — nombre visible
-- `x, y` (number) — posición en canvas
-- `w, h` (number) — tamaño (default 260x160)
-- `color` (hex string) — color del nodo. Colores disponibles: `#c9a94e` (gold), `#3498db` (azul), `#2ecc71` (verde), `#e74c3c` (rojo), `#9b59b6` (morado), `#e67e22` (naranja), `#1abc9c` (teal), `#e056a0` (rosa), `#f39c12` (amarillo), `#06d6d6` (cyan)
-- `description` (string) — descripción corta
-- `stage` (string) — etapa: `idea`, `desarrollo`, `mvp`, `activo`, `escalando`, `escritura`, `pausado`
-- `revenue` (string) — info de revenue (ej: "Pre-revenue", "$2k/mo")
-- `agent` (string) — agente asignado (ej: "QualIA", "InfraQual-IA")
-- `projectName` (string) — proyecto asociado (del listado de projects, enlaza tareas)
-- `objective` (string) — objetivo del nodo
-- `notes` (string) — notas libres
-- `metrics` (array) — [{label, value}] max 3 visibles en card
-- `refs` (array) — [{boardId, cardId}] sub-nodos referenciados de cualquier board
+- `name` (string) - nombre visible
+- `description` (string) - descripcion corta
+- `color` (hex) - color del nodo
+- `x, y` (number) - posicion en canvas
+- `projects` (string[]) - nombres de proyectos asociados
+- `links` (array) - `[{label, url, type}]` recursos del nodo (logo, web, dashboard, etc)
+- `refs` (array) - `[{boardId, cardId}]` sub-nodos referenciados
 
-**NO existe boardId en nodos.** No hay accesos directos. Todos los nodos son editables y se navegan via refs (sub-nodos). Click en un nodo siempre abre el panel de edición. Click en un sub-nodo (ref) navega al board destino y centra en ese nodo.
+Colores: `#c9a94e` (gold), `#3498db` (azul), `#2ecc71` (verde), `#e74c3c` (rojo), `#9b59b6` (morado), `#e67e22` (naranja), `#1abc9c` (teal), `#e056a0` (rosa), `#f39c12` (amarillo), `#06d6d6` (cyan)
 
 #### Conexiones
-- `POST /api/ecosystem/boards/:bid/connections` — Body: `{from, to, label}`
-- `PUT /api/ecosystem/boards/:bid/connections/:cid` — Editar
-- `DELETE /api/ecosystem/boards/:bid/connections/:cid` — Eliminar
+- `POST /api/ecosystem/boards/:bid/connections` - Body: `{from, to, label}`
+- `PUT /api/ecosystem/boards/:bid/connections/:cid` - Editar
+- `DELETE /api/ecosystem/boards/:bid/connections/:cid` - Eliminar
 
 ### Brainstorm
-Misma estructura que ecosystem pero para ideas.
+Boards de ideas con cards y conexiones.
 
-- `GET /api/brainstorm/boards` — Lista boards
-- `POST /api/brainstorm/boards` — Crear board
-- Nodos y conexiones: mismos endpoints bajo `/api/brainstorm/boards/:bid/...`
+- `GET /api/brainstorm/boards` - Lista boards
+- `POST /api/brainstorm/boards` - Crear board
+- Cards y conexiones: mismos endpoints bajo `/api/brainstorm/boards/:bid/...`
 
-Campos de cards de brainstorm:
-- `title` (string) — titulo de la idea
-- `summary` (string) — resumen corto
-- `detail` (string) — detalle completo
-- `source` (string) — origen/fuente (ej: "Audio 1", "reunion")
-- `color` (hex string) — mismos colores que ecosystem
-- `tags` (array de strings) — etiquetas
-- `refs` (array) — [{boardId, cardId}] sub-ideas referenciadas de cualquier board
-- `x, y` (number) — posición en canvas
+Campos de cards: `title, summary, detail, source, color, tags, icon, x, y, refs`
+
+### Stats
+- `GET /api/stats` - Resumen: `{byStatus, byProject, total}`
+
+### Config
+- `GET /api/config` - Configuracion del sistema
+
+### Branding
+- `GET /api/branding` - Theme actual (colores, logo, nombre)
 
 ## Data
-- Fuente de verdad: `board-data.json` en la raíz del proyecto
-- Se auto-crea vacío si no existe al arrancar el servidor
+- Fuente de verdad: `board-data.json`
+- Template: `board-data.template.json`
+- Branding: `branding/theme.json`
+- Backups: `versions/`
 
-## Importar Backlogs
-Para importar tareas desde archivos BACKLOG.md:
-```bash
-node parse-backlogs.mjs /path/to/BACKLOG.md "Nombre Proyecto"
+## Como construir el dashboard de un cliente
+
+1. Crear boards del ecosistema con la estructura del holding
+2. Crear nodos para cada empresa/negocio/iniciativa
+3. Usar refs para crear sub-nodos (arbol recursivo)
+4. Crear proyectos con `POST /api/projects` asignando el agente correspondiente
+5. Asociar proyectos a nodos via `PUT /api/ecosystem/boards/:bid/nodes/:nid` con `{projects: ["nombre"]}`
+6. Crear tareas con `POST /api/tasks` asignando proyecto y agente
+7. El sync se encarga del resto - los BACKLOG.md se actualizan automaticamente
+
+## Ejemplo de flujo
+
 ```
+# 1. Crear proyecto
+POST /api/projects
+{"name": "Mi Proyecto", "agent": "infraqualia"}
 
-## Ejemplo: Crear estructura inicial
-```bash
-# Crear proyectos
-curl -X POST http://127.0.0.1:18795/qualia-board/api/projects \
-  -H 'Content-Type: application/json' -d '{"name":"Mi Proyecto"}'
+# 2. Asignar a un nodo existente
+PUT /api/ecosystem/boards/root/nodes/n-infraqualia
+{"projects": ["Mi Proyecto"]}
 
-# Crear nodo en ecosistema
-curl -X POST http://127.0.0.1:18795/qualia-board/api/ecosystem/boards/root/nodes \
-  -H 'Content-Type: application/json' \
-  -d '{"name":"Mi Proyecto","x":60,"y":60,"color":"#1abc9c","description":"Descripción corta","stage":"idea","projectName":"Mi Proyecto"}'
+# 3. Crear tarea
+POST /api/tasks
+{"title": "Implementar feature X", "project": "Mi Proyecto", "agent": "infraqualia", "status": "todo"}
 
-# Agregar sub-nodo (ref) a un nodo existente
-curl -X PUT http://127.0.0.1:18795/qualia-board/api/ecosystem/boards/root/nodes/NODE_ID \
-  -H 'Content-Type: application/json' \
-  -d '{"refs":[{"boardId":"BOARD_ID","cardId":"CARD_ID"}]}'
-
-# Crear tarea
-curl -X POST http://127.0.0.1:18795/qualia-board/api/tasks \
-  -H 'Content-Type: application/json' \
-  -d '{"title":"Primera tarea","project":"Mi Proyecto","status":"todo","priority":"medium"}'
+# 4. Ver backlog filtrado por nodo
+GET /api/nodes/root/n-infraqualia/backlog
+# -> retorna todas las tareas de los proyectos asociados a InfraQualia y sus sub-nodos
 ```
-
-## Branding
-
-Cada instancia tiene su propia identidad visual en `branding/theme.json` (gitignored).
-
-### Instalación de branding
-```bash
-cp -r branding.template/ branding/
-# Editar branding/theme.json con los colores/fuentes/logo del cliente
-```
-
-### API
-- `GET /api/branding` — Devuelve el theme.json actual (null si no existe)
-
-### Estructura de theme.json
-```json
-{
-  "brand": {
-    "name": "Nombre del Board",
-    "wordmarkPrimary": "Palabra1",
-    "wordmarkSecondary": "Palabra2",
-    "version": "v1.0.0"
-  },
-  "logo": {
-    "type": "svg-inline",
-    "svg": "<polygon .../>"
-  },
-  "colors": {
-    "bgDeep": "#050508",
-    "bgBase": "#0a0b0f",
-    "bgCard": "#111318",
-    "accent": "#c9a94e",
-    "accentDim": "rgba(201,169,78,0.15)",
-    "...": "..."
-  },
-  "fonts": {
-    "heading": "'Outfit', sans-serif",
-    "body": "'Figtree', sans-serif",
-    "mono": "'JetBrains Mono', monospace",
-    "googleImport": "https://fonts.googleapis.com/css2?family=..."
-  },
-  "backgroundGradient": "radial-gradient(...)"
-}
-```
-
-Logo soporta `"type": "image"` con `"src": "branding/logo.png"` (archivos en branding/ se sirven como estáticos).
-
-### Al configurar branding para un cliente:
-1. Preguntar colores principales (accent, fondo, texto)
-2. Preguntar nombre del board/empresa
-3. Logo: SVG inline o imagen en branding/
-4. Fuentes: Google Fonts URL + nombres
-5. Escribir theme.json y reiniciar
-
-## Notas
-- El frontend es vanilla JS, sin frameworks
-- Canvas del ecosistema soporta drag, zoom, pan
-- Navegación entre boards es via refs (sub-nodos) y breadcrumb con centrado animado
-- NO usar boardId en nodos — fue deprecado. Usar refs para enlazar nodos entre boards
-- `branding/` y `board-data.json` son propietarios de cada instancia (gitignored)
