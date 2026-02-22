@@ -1132,8 +1132,8 @@ let allTasks = null;
 async function ensureTasks() { if(!allTasks) allTasks = await fetch('api/tasks').then(r=>r.json()); return allTasks; }
 function getNodeTasks(n) {
   if(!allTasks) return [];
-  const name = (n.projectName || n.name || '').toLowerCase(); if(!name) return [];
-  return allTasks.filter(t => { if(!t.project) return false; const p=t.project.toLowerCase(); return p===name||name.includes(p.split(' ')[0])||p.includes(name.split(' ')[0]); })
+  const name = (n.projectName || '').toLowerCase(); if(!name) return [];
+  return allTasks.filter(t => t.project && t.project.toLowerCase() === name)
     .sort((a,b) => ({'in-progress':0,todo:1,blocked:2,done:3}[a.status]??1) - ({'in-progress':0,todo:1,blocked:2,done:3}[b.status]??1));
 }
 const STAGE_COLORS = {idea:'#888',desarrollo:'#3498db',mvp:'#e67e22',activo:'#2ecc71',escalando:'#c9a94e',escritura:'#9b59b6',pausado:'#555'};
