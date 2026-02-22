@@ -1,51 +1,125 @@
 # Qualia Holding Board
 
-Board visual de gestión con 6 vistas: Cockpit, Kanban, Proyectos, Ecosistema, Brainstorm, Done.
+Board visual de gestion con 6 vistas: Cockpit, Kanban, Proyectos, Ecosistema, Brainstorm, Done.
 
-## Requisitos
+Zero dependencias npm. Corre 100% con Node nativo.
 
-- Node.js 18+
-- QualIA Hub (Express, puerto 18795) o cualquier servidor Express que monte este proyecto
+## Instalacion
 
-## Instalación
+```bash
+# Clonar
+git clone https://github.com/ipaez/qualia-holding-board.git
+cd qualia-holding-board
 
-1. Copiar esta carpeta en `~/.openclaw/hub/projects/qualia-board/`
-2. El hub lo descubre automáticamente via `manifest.json`
-3. O correr standalone: `node server.mjs` (puerto 3100 por defecto)
+# Configurar branding (opcional - usa defaults si no existe)
+cp -r branding.template/ branding/
+# Editar branding/theme.json para cambiar colores, logo, nombre
 
-## Estructura
+# Crear board-data.json (fuente de verdad, gitignored)
+cat > board-data.json << 'EOF'
+{
+  "tasks": [],
+  "projects": [],
+  "ecosystem": {
+    "boards": [{
+      "id": "root",
+      "name": "Mi Holding",
+      "created": "2026-01-01T00:00:00.000Z",
+      "type": "ecosystem",
+      "nodes": [],
+      "connections": []
+    }]
+  },
+  "config": {
+    "workspacesBase": "~/.openclaw",
+    "backlogFilename": "BACKLOG.md"
+  }
+}
+EOF
 
-- `server.mjs` — API backend (tasks CRUD, ecosystem boards, brainstorm, projects)
-- `web/` — Frontend vanilla JS (6 páginas HTML + shared.js)
-- `board-data.json` — Fuente de verdad (auto-generado si no existe)
-- `branding/` — Identidad visual personalizada (gitignored, propietaria de cada instancia)
-- `branding.template/` — Ejemplo de theme.json para nuevas instancias
-- `manifest.json` — Descriptor para QualIA Hub
-- `parse-backlogs.mjs` — Importador de BACKLOG.md → tasks
-- `sync-backlogs.mjs` — Sync tasks → BACKLOG.md
+# Iniciar
+node start.mjs
+```
+
+Abrir http://127.0.0.1:3100
+
+## Config
+
+El archivo `board-data.json` es la fuente de verdad. Se auto-genera vacio si no existe, pero sin la seccion `config` el sync bidireccional no funciona.
+
+### config.workspacesBase
+
+Directorio donde el board busca archivos BACKLOG.md para sync bidireccional. Escanea `<workspacesBase>/workspace*/BACKLOG.md`.
+
+Default: `~/.openclaw`
+
+### config.backlogFilename
+
+Nombre del archivo de backlog a buscar en cada workspace.
+
+Default: `BACKLOG.md`
+
+## Sync bidireccional (Board <-> BACKLOG.md)
+
+El board sincroniza tareas con archivos BACKLOG.md en los workspaces de agentes:
+
+- Cada BACKLOG.md debe tener `<!-- sync:qualia-board -->` en la primera linea para activar sync
+- Los tasks usan markers inline: `<!-- qb:XXXXXXXX:status -->`
+- Cambios en el board actualizan los BACKLOG.md automaticamente
+- Cambios en los BACKLOG.md actualizan el board en tiempo real (file watcher)
+- El campo `agent` en cada task determina a que workspace se escribe
 
 ## Branding personalizado
 
-Cada instancia puede aplicar su propia identidad visual sin modificar el código:
+Cada instancia tiene su identidad visual sin tocar codigo:
 
-1. Copiar `branding.template/` → `branding/`
-2. Editar `branding/theme.json` con colores, fuentes y logo propios
+1. `cp -r branding.template/ branding/`
+2. Editar `branding/theme.json` - colores, fuentes, logo
 3. Reiniciar el servidor
 
-El `branding/` folder está en .gitignore — cada cliente mantiene su identidad separada del código.
+El folder `branding/` esta en .gitignore.
 
 ### theme.json soporta:
-- **brand** — nombre, wordmark, versión
-- **colors** — todos los colores del UI (fondo, texto, accent, status)
-- **fonts** — heading, body, mono + URL de Google Fonts
-- **logo** — SVG inline (con variables {{accent}}) o imagen (`"type": "image", "src": "branding/logo.png"`)
-- **backgroundGradient** — gradiente del body
+- **brand** - nombre, wordmark, version
+- **colors** - todos los colores del UI (fondo, texto, accent, status)
+- **fonts** - heading, body, mono + URL de Google Fonts
+- **logo** - SVG inline (con variables `{{accent}}`) o imagen
+
+## Estructura
+
+```
+server.mjs            # API backend (handler exportable + standalone via start.mjs)
+start.mjs             # Launcher standalone (puerto 3100)
+sync-backlogs.mjs     # Sync board <-> BACKLOG.md
+backlog-watcher.mjs   # Watch cambios en BACKLOG.md en tiempo real
+board-data.json       # Fuente de verdad (gitignored, local por instancia)
+branding/             # Theme personalizado (gitignored)
+branding.template/    # Template de theme.json para nuevas instancias
+web/                  # Frontend vanilla JS (6 vistas HTML + shared.js)
+manifest.json         # Descriptor para QualIA Hub (opcional)
+tests/                # Tests de sync (run-sync-tests.sh)
+```
 
 ## Vistas
 
-- **Cockpit** — KPIs, items que necesitan atención
-- **Kanban** — Drag & drop por estado
-- **Proyectos** — Acordeones por proyecto
-- **Ecosistema** — Canvas visual con nodos, conexiones, sub-boards recursivos
-- **Brainstorm** — Canvas de ideas con boards múltiples
-- **Done** — Archivo de tareas completadas
+- **Cockpit** - KPIs, items que necesitan atencion
+- **Kanban** - Drag & drop por estado
+- **Proyectos** - Acordeones por proyecto
+- **Ecosistema** - Canvas visual con nodos, conexiones, sub-boards recursivos
+- **Brainstorm** - Canvas de ideas (mismo motor que Ecosistema, boards tipo brainstorm)
+- **Done** - Historial de tareas completadas
+
+## Variables de entorno (opcionales)
+
+- `PORT` - Puerto del servidor (default: 3100)
+- `BIND` - IP de bind (default: 127.0.0.1)
+
+## Tests
+
+```bash
+cd tests && bash run-sync-tests.sh
+```
+
+## Uso con QualIA Hub (opcional)
+
+Si tienes QualIA Hub corriendo, clona en `~/.openclaw/hub/projects/qualia-board/` y el hub lo monta automaticamente via `manifest.json` (type: backend). No necesitas `start.mjs` en ese caso.
