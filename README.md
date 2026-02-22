@@ -16,6 +16,10 @@ Abrir http://127.0.0.1:3100
 
 Todo se auto-genera en el primer arranque (`board-data.json`, ecosystem root board, etc).
 
+## Para agentes AI
+
+Leer `skill/SKILL.md` - contiene la documentacion completa: conceptos, API, onboarding paso a paso, y como construir el dashboard de un cliente desde cero.
+
 ## Branding (opcional)
 
 Para personalizar colores, logo y fuentes:
