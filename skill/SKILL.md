@@ -25,6 +25,10 @@ Gestionar un Holding Board - sistema visual de nodos con backlog sincronizado bi
 ## API Base
 Base URL: `http://127.0.0.1:18795/qualia-board`
 
+## Reglas
+
+- **Parking Lot**: toda tarea sin proyecto asignado o sin clasificacion clara va a `project: "Parking Lot"`. El usuario revisa periodicamente el Parking Lot para clasificar.
+
 ## Endpoints
 
 ### Tasks
