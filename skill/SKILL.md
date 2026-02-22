@@ -25,6 +25,22 @@ Gestionar un Holding Board - sistema visual de nodos con backlog sincronizado bi
 ## API Base
 Base URL: `http://127.0.0.1:18795/qualia-board`
 
+## Onboarding (primera vez)
+
+Cuando el proyecto se instala por primera vez y board-data.json esta vacio (o es el template), el agente debe:
+
+1. Descubrir workspaces existentes (listar `~/.openclaw/workspace*`)
+2. Leer cada BACKLOG.md (solo lectura, no modificar)
+3. Extraer la estructura: que proyectos/agrupaciones existen, que agentes hay
+4. Proponer un arbol de nodos que modele la organizacion del usuario
+5. Crear los boards y nodos via API (POST /api/ecosystem/boards, POST .../nodes)
+6. Crear los proyectos via API (POST /api/projects) basandose en las agrupaciones encontradas
+7. Asociar proyectos a nodos correspondientes
+
+**Importante**: el onboarding NO modifica los BACKLOG.md. Solo los lee para entender la estructura y construir el dashboard visual. Los backlogs se mantienen intactos.
+
+El resultado es un dashboard funcional con datos reales del usuario desde el primer momento.
+
 ## Reglas
 
 - **Parking Lot**: toda tarea sin proyecto asignado o sin clasificacion clara va a `project: "Parking Lot"`. El usuario revisa periodicamente el Parking Lot para clasificar.
