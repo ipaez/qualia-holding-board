@@ -296,12 +296,19 @@ document.write(getNavHTML(MODE));
         </div>
       </div>
       <div class="sp-body">
-        <label>Nombre</label>
-        <input type="text" id="spName">
-        <label>Descripcion</label>
-        <textarea id="spDesc" style="min-height:60px"></textarea>
-        <label>Detalle</label>
-        <textarea id="spDetail" style="min-height:100px" placeholder="Detalle expandido..."></textarea>
+        <div id="spViewFields">
+          <div id="spViewName" style="font-family:var(--font-heading);font-size:1.1rem;font-weight:700;color:var(--text-primary);margin-bottom:12px"></div>
+          <div id="spViewDesc" style="font-size:0.85rem;color:var(--text-secondary);line-height:1.5;white-space:pre-wrap"></div>
+          <div id="spViewDetail" style="font-size:0.82rem;color:var(--text-tertiary);line-height:1.5;margin-top:12px;white-space:pre-wrap"></div>
+        </div>
+        <div id="spEditFields" style="display:none">
+          <label>Nombre</label>
+          <input type="text" id="spName">
+          <label>Descripcion</label>
+          <textarea id="spDesc" style="min-height:60px"></textarea>
+          <label>Detalle</label>
+          <textarea id="spDetail" style="min-height:100px" placeholder="Detalle expandido..."></textarea>
+        </div>
         <div id="spProjectSection">
           <label>Proyectos asociados</label>
           <div id="spProjectWrap"></div>
@@ -1205,12 +1212,12 @@ async function openPanel(c) {
   document.getElementById('spName').value = c.name || '';
   document.getElementById('spDesc').value = c.description || '';
   document.getElementById('spDetail').value = c.detail || '';
+  setFieldsView(true);
   renderColorSwatches(c.color);
   // Reset edit mode
   editMode = false;
   document.getElementById('spEdit').style.color = '';
   document.getElementById('spEdit').style.background = '';
-  setFieldsReadonly(true);
   // Hide config sub-panel, show main body
   document.getElementById('spConfigBody').style.display = 'none';
   document.querySelector('#sidePanel > .sp-body').style.display = '';
@@ -1226,12 +1233,17 @@ function closePanel() { document.getElementById('sidePanel').classList.remove('o
 
 let editMode = false;
 
-function setFieldsReadonly(ro) {
-  ['spName','spDesc','spDetail'].forEach(id => {
-    const el = document.getElementById(id);
-    if (ro) { el.setAttribute('readonly',''); el.style.opacity='0.8'; el.style.cursor='default'; }
-    else { el.removeAttribute('readonly'); el.style.opacity=''; el.style.cursor=''; }
-  });
+function setFieldsView(viewMode) {
+  document.getElementById('spViewFields').style.display = viewMode ? '' : 'none';
+  document.getElementById('spEditFields').style.display = viewMode ? 'none' : '';
+  if (viewMode && selectedCard) {
+    document.getElementById('spViewName').textContent = selectedCard.name || 'Sin nombre';
+    document.getElementById('spViewDesc').textContent = selectedCard.description || '';
+    document.getElementById('spViewDetail').textContent = selectedCard.detail || '';
+    // Hide empty sections
+    document.getElementById('spViewDesc').style.display = selectedCard.description ? '' : 'none';
+    document.getElementById('spViewDetail').style.display = selectedCard.detail ? '' : 'none';
+  }
 }
 
 function toggleEditMode() {
@@ -1239,7 +1251,7 @@ function toggleEditMode() {
   const btn = document.getElementById('spEdit');
   btn.style.color = editMode ? 'var(--gold)' : '';
   btn.style.background = editMode ? 'var(--gold-glow)' : '';
-  setFieldsReadonly(!editMode);
+  setFieldsView(!editMode);
   // Re-render lists that have delete buttons
   if (BOARD_TYPE === 'ecosystem' && selectedCard) renderProjectAssoc(selectedCard);
   renderRefs();
