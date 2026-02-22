@@ -1078,7 +1078,7 @@ function renderConns() {
     const otherId = c.from === selectedCard.id ? c.to : c.from;
     const other = currentBoard.cards.find(cd => cd.id === otherId);
     const dir = c.from === selectedCard.id ? '&rarr;' : '&larr;';
-    return `<div class="sp-conn-item">${dir} <strong>${other?.title||'?'}</strong> <span style="color:var(--text-tertiary);font-size:0.72rem">${c.label||''}</span><span class="del" onclick="delConn('${c.id}')">x</span></div>`;
+    return `<div class="sp-conn-item">${dir} <strong>${other?.name||other?.title||'?'}</strong> <span style="color:var(--text-tertiary);font-size:0.72rem">${c.label||''}</span><span class="del" onclick="delConn('${c.id}')">x</span></div>`;
   }).join('');
 }
 window.delConn = async function(id) {
@@ -1260,8 +1260,8 @@ function openConnPanel(conn) {
   const from = currentBoard.cards.find(c => c.id === conn.from);
   const to = currentBoard.cards.find(c => c.id === conn.to);
   document.getElementById('cpTitle').textContent = conn.label || 'Conexion';
-  document.getElementById('cpFrom').textContent = from?.title || '?';
-  document.getElementById('cpTo').textContent = to?.title || '?';
+  document.getElementById('cpFrom').textContent = from?.name || from?.title || '?';
+  document.getElementById('cpTo').textContent = to?.name || to?.title || '?';
   document.getElementById('cpLabel').value = conn.label || '';
   document.getElementById('cpDetail').value = conn.detail || '';
   document.getElementById('connPanel').classList.add('open');
