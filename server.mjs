@@ -2,6 +2,7 @@ import { readFileSync, writeFileSync, existsSync, statSync } from 'node:fs';
 import { join, dirname, extname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import crypto from 'node:crypto';
+import { execFile } from 'node:child_process';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const DATA_FILE = join(__dirname, 'board-data.json');
@@ -44,8 +45,14 @@ function loadData() {
   return data;
 }
 
+let _syncTimer = null;
 function saveData(data) {
   writeFileSync(DATA_FILE, JSON.stringify(data, null, 2));
+  // Debounced sync to agent backlogs (2s after last save)
+  clearTimeout(_syncTimer);
+  _syncTimer = setTimeout(() => {
+    execFile('node', [join(__dirname, 'sync-backlogs.mjs')], { timeout: 10000 }, () => {});
+  }, 2000);
 }
 
 function readBody(req) {
