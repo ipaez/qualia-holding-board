@@ -28,12 +28,43 @@ function loadData() {
   catch { data = { tasks: [], projects: [], config: {} }; }
   if (!data.ecosystem) {
     data.ecosystem = { boards: [{ id: 'root', name: 'Mi Holding', created: new Date().toISOString(), nodes: [], connections: [] }] };
-    saveData(data);
   }
   if (!data.ecosystem.boards) {
     data.ecosystem = { boards: [{ id: 'root', name: 'Mi Holding', created: new Date().toISOString(), nodes: data.ecosystem.nodes || [], connections: data.ecosystem.connections || [] }] };
-    saveData(data);
   }
+  // Ensure all boards have a type (default: ecosystem)
+  let dirty = false;
+  for (const b of data.ecosystem.boards) {
+    if (!b.type) { b.type = 'ecosystem'; dirty = true; }
+  }
+  // Migrate brainstorm boards into ecosystem with type=brainstorm
+  if (data.brainstorm && data.brainstorm.boards && data.brainstorm.boards.length > 0) {
+    for (const bs of data.brainstorm.boards) {
+      const nodes = (bs.cards || []).map(c => ({
+        id: c.id,
+        name: c.title || c.name || 'Sin titulo',
+        description: c.summary || c.description || '',
+        detail: c.detail || '',
+        source: c.source || '',
+        tags: c.tags || [],
+        color: c.color || '#c9a94e',
+        x: c.x ?? 0, y: c.y ?? 0,
+        projects: [], links: [],
+        refs: c.refs || [],
+      }));
+      data.ecosystem.boards.push({
+        id: bs.id,
+        name: bs.name,
+        type: 'brainstorm',
+        created: bs.created || new Date().toISOString(),
+        nodes,
+        connections: bs.connections || [],
+      });
+    }
+    delete data.brainstorm;
+    dirty = true;
+  }
+  if (dirty) saveData(data);
   return data;
 }
 
@@ -306,7 +337,10 @@ export default async function handler(req, res) {
     const findEcoBoard = id => ecoBoards.find(b => b.id === id);
 
     if (path === '/api/ecosystem/boards' && req.method === 'GET') {
-      return json(res, 200, ecoBoards.map(b => ({ id: b.id, name: b.name, created: b.created, cardCount: (b.nodes||[]).length, principalId: b.principalId || null })));
+      let filtered = ecoBoards;
+      const typeFilter = url.searchParams.get('type');
+      if (typeFilter) filtered = ecoBoards.filter(b => b.type === typeFilter);
+      return json(res, 200, filtered.map(b => ({ id: b.id, name: b.name, type: b.type || 'ecosystem', created: b.created, cardCount: (b.nodes||[]).length, principalId: b.principalId || null })));
     }
 
     if (path === '/api/ecosystem/resolve-refs' && req.method === 'POST') {
@@ -317,14 +351,14 @@ export default async function handler(req, res) {
         if (!board) return { boardId: ref.boardId, cardId: ref.cardId, found: false };
         const card = (board.nodes || []).find(c => c.id === ref.cardId);
         if (!card) return { boardId: ref.boardId, cardId: ref.cardId, found: false };
-        return { boardId: ref.boardId, cardId: ref.cardId, found: true, title: card.name, summary: card.description, color: card.color, boardName: board.name };
+        return { boardId: ref.boardId, cardId: ref.cardId, found: true, title: card.name, summary: card.description, color: card.color, tags: card.tags, boardName: board.name };
       });
       return json(res, 200, results);
     }
 
     if (path === '/api/ecosystem/boards' && req.method === 'POST') {
       const body = await readBody(req);
-      const board = { id: body.id || crypto.randomUUID(), name: body.name || 'Nuevo Board', created: new Date().toISOString(), nodes: [], connections: [] };
+      const board = { id: body.id || crypto.randomUUID(), name: body.name || 'Nuevo Board', type: body.type || 'ecosystem', created: new Date().toISOString(), nodes: [], connections: [] };
       ecoBoards.push(board);
       saveData(data);
       return json(res, 201, board);
@@ -341,6 +375,7 @@ export default async function handler(req, res) {
       if (!board) return json(res, 404, { error: 'Not found' });
       const body = await readBody(req);
       if (body.name !== undefined) board.name = body.name;
+      if (body.type !== undefined) board.type = body.type;
       if (body.principalId !== undefined) board.principalId = body.principalId;
       saveData(data);
       return json(res, 200, board);
@@ -364,6 +399,9 @@ export default async function handler(req, res) {
         id: body.id || crypto.randomUUID(),
         name: body.name || 'Nuevo Nodo',
         description: body.description || '',
+        detail: body.detail || '',
+        source: body.source || '',
+        tags: body.tags || [],
         color: body.color || '#c9a94e',
         x: body.x ?? 300 + Math.random() * 200,
         y: body.y ?? 200 + Math.random() * 200,
@@ -384,7 +422,7 @@ export default async function handler(req, res) {
       const node = (board.nodes || []).find(n => n.id === ecoNodeMatch[2]);
       if (!node) return json(res, 404, { error: 'Node not found' });
       const body = await readBody(req);
-      for (const key of ['name','description','color','x','y','projects','links','refs','w','h']) {
+      for (const key of ['name','description','detail','source','tags','color','x','y','projects','links','refs','w','h']) {
         if (body[key] !== undefined) node[key] = body[key];
       }
       saveData(data);
@@ -442,138 +480,6 @@ export default async function handler(req, res) {
       return json(res, 200, root || { nodes: [], connections: [] });
     }
 
-    // ====== BRAINSTORM API ======
-    if (!data.brainstorm) data.brainstorm = { boards: [] };
-    const bsBoards = data.brainstorm.boards;
-
-    if (path === '/api/brainstorm/boards' && req.method === 'GET') {
-      return json(res, 200, bsBoards.map(b => ({ id: b.id, name: b.name, created: b.created, cardCount: (b.cards||[]).length, principalId: b.principalId || null })));
-    }
-
-    if (path === '/api/brainstorm/resolve-refs' && req.method === 'POST') {
-      const body = await readBody(req);
-      const refs = body.refs || [];
-      const results = refs.map(ref => {
-        const board = bsBoards.find(b => b.id === ref.boardId);
-        if (!board) return { ...ref, found: false };
-        const card = (board.cards||[]).find(c => c.id === ref.cardId);
-        if (!card) return { ...ref, found: false };
-        return { ...ref, found: true, title: card.title, summary: card.summary, color: card.color, tags: card.tags, boardName: board.name };
-      });
-      return json(res, 200, results);
-    }
-
-    if (path === '/api/brainstorm/boards' && req.method === 'POST') {
-      const body = await readBody(req);
-      const board = { id: crypto.randomUUID().slice(0,8), name: body.name || 'Nuevo Board', created: new Date().toISOString(), cards: [], connections: [] };
-      bsBoards.push(board);
-      saveData(data);
-      return json(res, 201, board);
-    }
-
-    const bsBoardMatch = path.match(/^\/api\/brainstorm\/boards\/([^/]+)$/);
-    if (bsBoardMatch && req.method === 'GET') {
-      const board = bsBoards.find(b => b.id === bsBoardMatch[1]);
-      if (!board) return json(res, 404, { error: 'Board not found' });
-      return json(res, 200, board);
-    }
-    if (bsBoardMatch && req.method === 'PUT') {
-      const board = bsBoards.find(b => b.id === bsBoardMatch[1]);
-      if (!board) return json(res, 404, { error: 'Board not found' });
-      const body = await readBody(req);
-      if (body.name !== undefined) board.name = body.name;
-      if (body.principalId !== undefined) board.principalId = body.principalId;
-      saveData(data);
-      return json(res, 200, board);
-    }
-    if (bsBoardMatch && req.method === 'DELETE') {
-      const idx = bsBoards.findIndex(b => b.id === bsBoardMatch[1]);
-      if (idx === -1) return json(res, 404, { error: 'Board not found' });
-      bsBoards.splice(idx, 1);
-      saveData(data);
-      return json(res, 200, { ok: true });
-    }
-
-    const bsCardsMatch = path.match(/^\/api\/brainstorm\/boards\/([^/]+)\/cards$/);
-    if (bsCardsMatch && req.method === 'POST') {
-      const board = bsBoards.find(b => b.id === bsCardsMatch[1]);
-      if (!board) return json(res, 404, { error: 'Board not found' });
-      const body = await readBody(req);
-      const card = {
-        id: 'c-' + crypto.randomUUID().slice(0,8),
-        title: body.title || 'Nueva idea',
-        summary: body.summary || '',
-        detail: body.detail || '',
-        source: body.source || '',
-        color: body.color || '#c9a94e',
-        tags: body.tags || [],
-        icon: body.icon || 'idea',
-        x: body.x ?? 200 + Math.random() * 300,
-        y: body.y ?? 150 + Math.random() * 200,
-        refs: body.refs || [],
-      };
-      board.cards.push(card);
-      saveData(data);
-      return json(res, 201, card);
-    }
-
-    const bsCardMatch = path.match(/^\/api\/brainstorm\/boards\/([^/]+)\/cards\/([^/]+)$/);
-    if (bsCardMatch && req.method === 'PUT') {
-      const board = bsBoards.find(b => b.id === bsCardMatch[1]);
-      if (!board) return json(res, 404, { error: 'Board not found' });
-      const card = board.cards.find(c => c.id === bsCardMatch[2]);
-      if (!card) return json(res, 404, { error: 'Card not found' });
-      const body = await readBody(req);
-      for (const key of ['title','summary','detail','source','color','tags','icon','x','y','refs']) {
-        if (body[key] !== undefined) card[key] = body[key];
-      }
-      saveData(data);
-      return json(res, 200, card);
-    }
-    if (bsCardMatch && req.method === 'DELETE') {
-      const board = bsBoards.find(b => b.id === bsCardMatch[1]);
-      if (!board) return json(res, 404, { error: 'Board not found' });
-      const idx = board.cards.findIndex(c => c.id === bsCardMatch[2]);
-      if (idx === -1) return json(res, 404, { error: 'Card not found' });
-      board.cards.splice(idx, 1);
-      board.connections = board.connections.filter(c => c.from !== bsCardMatch[2] && c.to !== bsCardMatch[2]);
-      saveData(data);
-      return json(res, 200, { ok: true });
-    }
-
-    const bsConnsMatch = path.match(/^\/api\/brainstorm\/boards\/([^/]+)\/connections$/);
-    if (bsConnsMatch && req.method === 'POST') {
-      const board = bsBoards.find(b => b.id === bsConnsMatch[1]);
-      if (!board) return json(res, 404, { error: 'Board not found' });
-      const body = await readBody(req);
-      const conn = { id: 'cx-' + crypto.randomUUID().slice(0,8), from: body.from, to: body.to, label: body.label || '', detail: body.detail || '' };
-      board.connections.push(conn);
-      saveData(data);
-      return json(res, 201, conn);
-    }
-
-    const bsConnMatch = path.match(/^\/api\/brainstorm\/boards\/([^/]+)\/connections\/([^/]+)$/);
-    if (bsConnMatch && req.method === 'PUT') {
-      const board = bsBoards.find(b => b.id === bsConnMatch[1]);
-      if (!board) return json(res, 404, { error: 'Board not found' });
-      const conn = board.connections.find(c => c.id === bsConnMatch[2]);
-      if (!conn) return json(res, 404, { error: 'Conn not found' });
-      const body = await readBody(req);
-      if (body.label !== undefined) conn.label = body.label;
-      if (body.detail !== undefined) conn.detail = body.detail;
-      saveData(data);
-      return json(res, 200, conn);
-    }
-    if (bsConnMatch && req.method === 'DELETE') {
-      const board = bsBoards.find(b => b.id === bsConnMatch[1]);
-      if (!board) return json(res, 404, { error: 'Board not found' });
-      const idx = board.connections.findIndex(c => c.id === bsConnMatch[2]);
-      if (idx === -1) return json(res, 404, { error: 'Conn not found' });
-      board.connections.splice(idx, 1);
-      saveData(data);
-      return json(res, 200, { ok: true });
-    }
-
     return json(res, 404, { error: 'Unknown API route' });
   }
 
@@ -584,7 +490,7 @@ export default async function handler(req, res) {
   if (path === '/done') return serveStatic(res, join(WEB_DIR, 'done.html'));
   if (path === '/ecosystem') return serveStatic(res, join(WEB_DIR, 'ecosystem.html'));
   if (path === '/backlog') return serveStatic(res, join(WEB_DIR, 'backlog.html'));
-  if (path === '/brainstorm' || path.startsWith('/brainstorm/')) return serveStatic(res, join(WEB_DIR, 'brainstorm.html'));
+  if (path === '/brainstorm' || path.startsWith('/brainstorm/')) return serveStatic(res, join(WEB_DIR, 'ecosystem.html'));
 
   if (path.startsWith('/branding/')) {
     const brandPath = join(BRANDING_DIR, path.slice(10));

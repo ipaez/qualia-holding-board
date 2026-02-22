@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Qualia Holding Board — Ecosistema</title>
+<title>Qualia Holding Board</title>
 <script src="shared.js"></script>
 <style id="shared-css"></style>
 <style>
@@ -250,7 +250,11 @@ canvas#bsCanvas.connecting { cursor: crosshair; }
 </head>
 <body>
 <script>document.getElementById('shared-css').textContent = getSharedCSS();</script>
-<script>document.write(getNavHTML('ecosystem'));</script>
+<script>
+const MODE = location.pathname.includes('brainstorm') ? 'brainstorm' : 'ecosystem';
+document.title = 'Qualia Holding Board — ' + (MODE === 'brainstorm' ? 'Brainstorm' : 'Ecosistema');
+document.write(getNavHTML(MODE));
+</script>
 <div class="qb-main" style="height:100vh">
 <div class="bs-wrap">
   <div class="bs-boards-bar" id="boardsBar"></div>
@@ -268,6 +272,7 @@ canvas#bsCanvas.connecting { cursor: crosshair; }
       <div class="bs-opts-menu" id="optsMenu">
         <button onclick="renameboardPrompt()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 3a2.83 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5z"/></svg> Renombrar board</button>
         <button onclick="duplicateBoard()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg> Duplicar board</button>
+        <button id="optExport" style="display:none" onclick="exportBoard()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/></svg> Exportar a Ecosistema</button>
         <div class="bs-opts-sep"></div>
         <button class="danger" onclick="deleteBoardConfirm()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg> Eliminar board</button>
       </div>
@@ -291,11 +296,23 @@ canvas#bsCanvas.connecting { cursor: crosshair; }
         <input type="text" id="spName">
         <label>Descripcion</label>
         <textarea id="spDesc" style="min-height:60px"></textarea>
-        <label>Proyectos asociados</label>
-        <div id="spProjectWrap"></div>
-        <div id="spTaskSection" style="display:none">
-          <label id="spTaskLabel">Tareas</label>
-          <div id="spTaskList" class="sp-conns" style="max-height:200px;overflow-y:auto"></div>
+        <label>Detalle</label>
+        <textarea id="spDetail" style="min-height:100px" placeholder="Detalle expandido..."></textarea>
+        <label>Origen / Fuente</label>
+        <input type="text" id="spSource" placeholder="Audio, reunion, idea propia...">
+        <label>Tags</label>
+        <div class="sp-tags-wrap" id="spTags"></div>
+        <div class="sp-tag-add">
+          <input type="text" id="spTagInput" placeholder="Nuevo tag...">
+          <button id="spTagAdd">+ Tag</button>
+        </div>
+        <div id="spProjectSection">
+          <label>Proyectos asociados</label>
+          <div id="spProjectWrap"></div>
+          <div id="spTaskSection" style="display:none">
+            <label id="spTaskLabel">Tareas</label>
+            <div id="spTaskList" class="sp-conns" style="max-height:200px;overflow-y:auto"></div>
+          </div>
         </div>
         <label>Links</label>
         <div id="spLinks" class="sp-conns"></div>
@@ -347,6 +364,7 @@ canvas#bsCanvas.connecting { cursor: crosshair; }
 
 <script>
 const ECO_BAPI = 'api/ecosystem';
+const BOARD_TYPE = MODE; // 'ecosystem' or 'brainstorm'
 const COLORS = ['#c9a94e','#3498db','#2ecc71','#e74c3c','#9b59b6','#e67e22','#1abc9c','#e056a0','#f39c12','#06d6d6'];
 const CARD_W = 280, CARD_H = 140, CARD_R = 14;
 const SUB_ROW_H = 26; // height per sub-card row inside parent
@@ -408,7 +426,7 @@ function resize() {
 
 // --- Data ---
 async function loadBoards() {
-  boards = await fetch(`${ECO_BAPI}/boards`).then(r => r.json());
+  boards = await fetch(`${ECO_BAPI}/boards?type=${BOARD_TYPE}`).then(r => r.json());
 }
 
 // --- Navigation via hash: #boardId or #boardId@focusNodeId ---
@@ -566,7 +584,7 @@ async function resolveAllRefs() {
 }
 
 async function createBoard() {
-  const board = await fetch(`${ECO_BAPI}/boards`, { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ name: 'Nuevo Board' }) }).then(r => r.json());
+  const board = await fetch(`${ECO_BAPI}/boards`, { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ name: 'Nuevo Board', type: BOARD_TYPE }) }).then(r => r.json());
   boards.push({ id: board.id, name: board.name, cardCount: 0 });
   await selectBoard(board.id);
 }
@@ -1082,10 +1100,14 @@ function bindEvents() {
   document.addEventListener('click', () => { optsMenu.classList.remove('open'); optsBtn.classList.remove('open'); });
   optsMenu.addEventListener('click', e => e.stopPropagation());
 
-  ['spName','spDesc'].forEach(id => {
+  ['spName','spDesc','spDetail','spSource'].forEach(id => {
     document.getElementById(id).addEventListener('input', scheduleSave);
   });
   document.getElementById('spLinkAdd').addEventListener('click', addLink);
+  document.getElementById('spTagAdd').addEventListener('click', addTag);
+  document.getElementById('spTagInput').addEventListener('keydown', e => { if (e.key === 'Enter') addTag(); });
+  // Show export button in brainstorm mode
+  if (BOARD_TYPE === 'brainstorm') document.getElementById('optExport').style.display = '';
 }
 
 // --- Card Panel ---
@@ -1202,18 +1224,22 @@ function renderTaskList(n) {
 async function openPanel(c) {
   closeConnPanel();
   selectedCard = c;
-  await ensureTasks();
+  if (BOARD_TYPE === 'ecosystem') await ensureTasks();
   document.getElementById('spTitle').textContent = c.name || 'Nodo';
   document.getElementById('spName').value = c.name || '';
   document.getElementById('spDesc').value = c.description || '';
+  document.getElementById('spDetail').value = c.detail || '';
+  document.getElementById('spSource').value = c.source || '';
   renderColorSwatches(c.color);
+  renderTags();
   renderLinks();
-  renderProjectAssoc(c);
+  // Show/hide projects section based on mode
+  document.getElementById('spProjectSection').style.display = BOARD_TYPE === 'ecosystem' ? 'block' : 'none';
+  if (BOARD_TYPE === 'ecosystem') renderProjectAssoc(c);
   renderRefs();
   renderConns();
-  // Footer
   const footer = document.querySelector('#sidePanel .sp-footer');
-  footer.innerHTML = `<button class="btn-del" onclick="deleteCard()">Eliminar idea</button>`;
+  footer.innerHTML = `<button class="btn-del" onclick="deleteCard()">Eliminar nodo</button>`;
   document.getElementById('sidePanel').classList.add('open');
 }
 
@@ -1225,6 +1251,22 @@ function renderColorSwatches(active) {
   ).join('');
 }
 window.pickColor = function(c) { if (!selectedCard) return; selectedCard.color = c; renderColorSwatches(c); scheduleSave(); };
+
+function renderTags() {
+  if (!selectedCard) return;
+  document.getElementById('spTags').innerHTML = (selectedCard.tags||[]).map((t,i) =>
+    `<span class="sp-tag">${esc(t)}<button onclick="removeTag(${i})">x</button></span>`
+  ).join('');
+}
+function addTag() {
+  if (!selectedCard) return;
+  const input = document.getElementById('spTagInput'), val = input.value.trim();
+  if (!val) return;
+  if (!selectedCard.tags) selectedCard.tags = [];
+  selectedCard.tags.push(val); input.value = '';
+  renderTags(); scheduleSave();
+}
+window.removeTag = function(i) { if (!selectedCard) return; selectedCard.tags.splice(i, 1); renderTags(); scheduleSave(); };
 
 function renderRefs() {
   if (!selectedCard) return;
@@ -1287,7 +1329,10 @@ async function savePanel() {
   const body = {
     name: document.getElementById('spName').value,
     description: document.getElementById('spDesc').value,
+    detail: document.getElementById('spDetail').value,
+    source: document.getElementById('spSource').value,
     color: selectedCard.color,
+    tags: selectedCard.tags || [],
     projects: selectedCard.projects || [],
     links: selectedCard.links || [],
   };
@@ -1497,6 +1542,16 @@ window.duplicateBoard = async function() {
   }
   await loadBoards(); await selectBoard(newBoard.id);
 };
+window.exportBoard = async function() {
+  if (!currentBoard) return;
+  document.getElementById('optsMenu').classList.remove('open'); document.getElementById('optsBtn').classList.remove('open');
+  if (!confirm('Exportar "' + currentBoard.name + '" al Ecosistema? El board dejara de aparecer en Brainstorm.')) return;
+  await fetch(`${ECO_BAPI}/boards/${currentBoard.id}`, { method: 'PUT', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ type: 'ecosystem' }) });
+  boards = boards.filter(b => b.id !== currentBoard.id);
+  currentBoard = null;
+  autoSelect();
+};
+
 async function renameboard() {
   if (!currentBoard) return;
   const name = document.getElementById('boardName').value;
