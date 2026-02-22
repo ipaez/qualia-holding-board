@@ -133,7 +133,12 @@ function openEditModal(task) {
   document.getElementById('fTitle').value = task.title;
   document.getElementById('fDesc').value = task.description || '';
   document.getElementById('fProject').value = task.project;
+  // Show agent as read-only info
+  document.getElementById('fAgent').style.display = 'none';
   document.getElementById('fAgent').value = task.agent;
+  const info = document.getElementById('fAgentInfo');
+  info.style.display = 'block';
+  info.textContent = '@' + task.agent;
   document.getElementById('fPriority').value = task.priority;
   document.getElementById('fType').value = task.type;
   document.getElementById('fStatus').value = task.status;
@@ -150,7 +155,10 @@ function openCreateModal(projects) {
   document.getElementById('fTitle').value = '';
   document.getElementById('fDesc').value = '';
   document.getElementById('fProject').value = projects[0] || '';
+  // Show agent selector for new tasks
+  document.getElementById('fAgent').style.display = '';
   document.getElementById('fAgent').value = 'main';
+  document.getElementById('fAgentInfo').style.display = 'none';
   document.getElementById('fPriority').value = 'medium';
   document.getElementById('fType').value = 'feature';
   document.getElementById('fStatus').value = 'idea';
@@ -213,7 +221,7 @@ function getModalHTML() {
     <textarea id="fDesc"></textarea>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
       <div><label>Proyecto</label><select id="fProject"></select></div>
-      <div><label>Agente</label><select id="fAgent"></select></div>
+      <div><label>Agente</label><div id="fAgentInfo" class="agent-info" style="display:none"></div><select id="fAgent"></select></div>
       <div><label>Prioridad</label>
         <select id="fPriority"><option value="low">Baja</option><option value="medium" selected>Media</option><option value="high">Alta</option></select>
       </div>
@@ -242,6 +250,7 @@ function getNavHTML(active) {
   const icons = {
     cockpit: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="9" rx="1"/><rect x="14" y="3" width="7" height="5" rx="1"/><rect x="14" y="12" width="7" height="9" rx="1"/><rect x="3" y="16" width="7" height="5" rx="1"/></svg>',
     kanban: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="5" height="18" rx="1"/><rect x="10" y="3" width="5" height="12" rx="1"/><rect x="17" y="3" width="5" height="15" rx="1"/></svg>',
+    backlog: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1" ry="1"/><line x1="9" y1="12" x2="15" y2="12"/><line x1="9" y1="16" x2="13" y2="16"/></svg>',
     projects: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>',
     ecosystem: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><circle cx="4" cy="6" r="2"/><circle cx="20" cy="6" r="2"/><circle cx="4" cy="18" r="2"/><circle cx="20" cy="18" r="2"/><line x1="6" y1="6" x2="9.5" y2="10"/><line x1="18" y1="6" x2="14.5" y2="10"/><line x1="6" y1="18" x2="9.5" y2="14"/><line x1="18" y1="18" x2="14.5" y2="14"/></svg>',
     brainstorm: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a7 7 0 0 1 5 11.9V16a1 1 0 0 1-1 1H8a1 1 0 0 1-1-1v-2.1A7 7 0 0 1 12 2z"/><line x1="9" y1="21" x2="15" y2="21"/><line x1="10" y1="24" x2="14" y2="24"/></svg>',
@@ -251,6 +260,7 @@ function getNavHTML(active) {
     { label: 'General', items: [
       { id: 'cockpit', label: 'Cockpit', href: './' },
       { id: 'kanban', label: 'Kanban', href: 'kanban' },
+      { id: 'backlog', label: 'Backlog', href: 'backlog' },
     ]},
     { label: 'Proyectos', items: [
       { id: 'projects', label: 'Proyectos', href: 'projects' },
@@ -571,6 +581,33 @@ body {
 .btn-cancel:hover { background: rgba(255,255,255,0.1); color: var(--text-primary); }
 .btn-delete { background: rgba(248,113,113,0.1); color: var(--red); margin-right: auto; }
 .btn-delete:hover { background: rgba(248,113,113,0.2); }
+
+/* Agent info badge (read-only in edit modal) */
+.agent-info {
+  background: var(--bg-elevated); color: var(--gold); border: 1px solid var(--border);
+  padding: 10px 14px; border-radius: var(--radius-sm);
+  font-family: var(--font-mono); font-size: 0.85rem; font-weight: 600;
+}
+
+/* Undo toast */
+.undo-toast {
+  position: fixed; bottom: 28px; left: 50%; transform: translateX(-50%);
+  background: var(--bg-elevated); border: 1px solid var(--border);
+  color: var(--text-primary); padding: 12px 20px; border-radius: 10px;
+  font-family: var(--font-body); font-size: 0.88rem;
+  display: flex; align-items: center; gap: 14px;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.5); z-index: 300;
+  animation: toastIn 0.25s ease;
+}
+.undo-toast.hiding { animation: toastOut 0.2s ease forwards; }
+@keyframes toastIn { from { opacity: 0; transform: translateX(-50%) translateY(20px); } }
+@keyframes toastOut { to { opacity: 0; transform: translateX(-50%) translateY(20px); } }
+.undo-toast button {
+  background: var(--gold); color: var(--bg-deep); border: none;
+  padding: 6px 16px; border-radius: 6px; cursor: pointer;
+  font-family: var(--font-body); font-weight: 600; font-size: 0.82rem;
+}
+.undo-toast button:hover { background: #d4b45a; }
 
 /* ── Responsive Sidebar ── */
 @media (max-width: 768px) {

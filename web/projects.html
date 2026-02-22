@@ -43,7 +43,7 @@
 }
 .project-block.collapsed .project-block-chevron { transform: rotate(-90deg); }
 
-.status-group { margin-bottom: 18px; }
+.status-group { margin-bottom: 18px; margin-top: 14px; }
 .status-group-title {
   font-family: var(--font-heading); font-size: 0.65rem; font-weight: 700;
   text-transform: uppercase; letter-spacing: 2px; color: var(--text-tertiary);
@@ -76,6 +76,59 @@
 }
 .quick-status:focus { outline: none; border-color: var(--gold); }
 
+.btn-proj-action {
+  background: var(--gold); color: var(--bg-deep); border: none;
+  padding: 8px 16px; border-radius: var(--radius-sm); cursor: pointer;
+  font-family: var(--font-body); font-weight: 600; font-size: 0.82rem;
+  transition: all .2s; white-space: nowrap;
+}
+.btn-proj-action:hover { background: #d4b45a; }
+
+.project-block-actions {
+  display: flex; gap: 6px; align-items: center;
+}
+.proj-btn-sm {
+  background: transparent; border: 1px solid var(--border); color: var(--text-tertiary);
+  padding: 4px 10px; border-radius: 6px; cursor: pointer; font-size: 0.7rem;
+  font-family: var(--font-body); transition: all .15s;
+}
+.proj-btn-sm:hover { border-color: var(--border-hover); color: var(--text-primary); }
+.proj-btn-sm.danger:hover { border-color: var(--red); color: var(--red); }
+
+/* Project modal */
+.proj-modal-overlay {
+  display: none; position: fixed; inset: 0;
+  background: rgba(5,5,8,0.8); z-index: 200;
+  justify-content: center; align-items: center;
+  backdrop-filter: blur(16px);
+}
+.proj-modal-overlay.active { display: flex; }
+.proj-modal {
+  background: var(--bg-card); border: 1px solid var(--border);
+  border-radius: var(--radius); width: 90%; max-width: 400px; padding: 28px;
+}
+.proj-modal h2 {
+  font-family: var(--font-heading); font-size: 1.1rem; margin-bottom: 20px;
+  color: var(--gold); font-weight: 700;
+}
+.proj-modal label {
+  display: block; font-family: var(--font-heading); font-size: 0.65rem;
+  color: var(--text-tertiary); margin: 12px 0 6px;
+  text-transform: uppercase; letter-spacing: 2px; font-weight: 700;
+}
+.proj-modal input {
+  width: 100%; background: var(--bg-base); color: var(--text-primary);
+  border: 1px solid var(--border); padding: 10px 12px;
+  border-radius: var(--radius-sm); font-family: var(--font-body); font-size: 0.875rem;
+}
+.proj-modal input:focus { outline: none; border-color: var(--gold); }
+.proj-modal-actions { display: flex; gap: 10px; margin-top: 20px; justify-content: flex-end; }
+.proj-modal-actions button {
+  padding: 9px 20px; border-radius: var(--radius-sm); border: none;
+  cursor: pointer; font-family: var(--font-body); font-weight: 600; font-size: 0.85rem;
+  transition: all .2s;
+}
+
 @media (max-width: 768px) {
   .filters { padding: 12px 16px; }
   .projects-container { padding: 16px 16px 30px; }
@@ -91,11 +144,26 @@
 <div class="filters">
   <select id="filterProject"><option value="">Todos los proyectos</option></select>
   <input type="text" id="searchInput" placeholder="Buscar tareas...">
+  <button class="btn-proj-action" onclick="openNewProjectModal()">+ Proyecto</button>
 </div>
 
 <div class="projects-container" id="container"></div>
 
 <script>document.write(getModalHTML());</script>
+
+<!-- Project CRUD modal -->
+<div class="proj-modal-overlay" id="projModal">
+  <div class="proj-modal">
+    <h2 id="projModalTitle">Nuevo proyecto</h2>
+    <input type="hidden" id="projOldName">
+    <label>Nombre</label>
+    <input type="text" id="projName" placeholder="Nombre del proyecto">
+    <div class="proj-modal-actions">
+      <button class="btn-cancel" onclick="closeProjModal()">Cancelar</button>
+      <button class="btn-save" onclick="saveProjModal()">Guardar</button>
+    </div>
+  </div>
+</div>
 
 <script>
 let tasks = [], projects = [], agents = [];
@@ -145,6 +213,10 @@ function render() {
           <span class="project-block-name" style="color:${color}">${esc(proj)}</span>
           <div class="project-block-meta">
             <span class="project-block-count">${pTasks.length} tareas</span>
+            <div class="project-block-actions" onclick="event.stopPropagation()">
+              <button class="proj-btn-sm" onclick="openEditProjectModal('${esc(proj).replace(/'/g,"\\'")}')">Editar</button>
+              <button class="proj-btn-sm danger" onclick="deleteProject('${esc(proj).replace(/'/g,"\\'")}')">Eliminar</button>
+            </div>
             <span class="project-block-chevron">▼</span>
           </div>
         </div>
@@ -184,6 +256,56 @@ async function quickMove(id, status) {
 
 document.getElementById('filterProject').addEventListener('change', render);
 document.getElementById('searchInput').addEventListener('input', render);
+document.getElementById('projModal').addEventListener('click', e => { if (e.target.id === 'projModal') closeProjModal(); });
+
+function openNewProjectModal() {
+  document.getElementById('projModalTitle').textContent = 'Nuevo proyecto';
+  document.getElementById('projOldName').value = '';
+  document.getElementById('projName').value = '';
+  document.getElementById('projModal').classList.add('active');
+  setTimeout(() => document.getElementById('projName').focus(), 50);
+}
+
+function openEditProjectModal(name) {
+  document.getElementById('projModalTitle').textContent = 'Editar proyecto';
+  document.getElementById('projOldName').value = name;
+  document.getElementById('projName').value = name;
+  document.getElementById('projModal').classList.add('active');
+  setTimeout(() => document.getElementById('projName').focus(), 50);
+}
+
+function closeProjModal() {
+  document.getElementById('projModal').classList.remove('active');
+}
+
+async function saveProjModal() {
+  const oldName = document.getElementById('projOldName').value;
+  const newName = document.getElementById('projName').value.trim();
+  if (!newName) return;
+  if (oldName) {
+    await fetch(`${API}/projects/${encodeURIComponent(oldName)}`, {
+      method: 'PUT', headers: {'Content-Type':'application/json'}, body: JSON.stringify({name: newName})
+    });
+  } else {
+    await fetch(`${API}/projects`, {
+      method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({name: newName})
+    });
+  }
+  closeProjModal();
+  load();
+}
+
+async function deleteProject(name) {
+  const count = tasks.filter(t => t.project === name).length;
+  const msg = count > 0
+    ? `Eliminar "${name}"? Tiene ${count} tarea(s) que quedaran sin proyecto.`
+    : `Eliminar "${name}"?`;
+  if (!confirm(msg)) return;
+  await fetch(`${API}/projects/${encodeURIComponent(name)}`, { method: 'DELETE' });
+  load();
+}
+
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closeProjModal(); });
 
 load();
 initSidebar();

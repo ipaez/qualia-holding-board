@@ -3,12 +3,16 @@ import { join, dirname, extname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import crypto from 'node:crypto';
 import { execFile } from 'node:child_process';
+import { startWatching } from './backlog-watcher.mjs';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const DATA_FILE = join(__dirname, 'board-data.json');
 const WEB_DIR = join(__dirname, 'web');
 const BRANDING_DIR = join(__dirname, 'branding');
 const BRANDING_FILE = join(BRANDING_DIR, 'theme.json');
+
+// Start backlog file watcher
+try { startWatching(); } catch(e) { console.error('[qualia-board] Watcher start error:', e.message); }
 
 const MIME = {
   '.html': 'text/html', '.css': 'text/css', '.js': 'application/javascript',
@@ -590,6 +594,9 @@ export default async function handler(req, res) {
   }
   if (path === '/ecosystem') {
     return serveStatic(res, join(WEB_DIR, 'ecosystem.html'));
+  }
+  if (path === '/backlog') {
+    return serveStatic(res, join(WEB_DIR, 'backlog.html'));
   }
   if (path === '/brainstorm' || path.startsWith('/brainstorm/')) {
     return serveStatic(res, join(WEB_DIR, 'brainstorm.html'));
