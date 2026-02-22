@@ -312,7 +312,7 @@ document.write(getNavHTML(MODE));
         </div>
         <label>Sub-nodos</label>
         <div class="sp-conns" id="spRefs"></div>
-        <button id="spAddRef" style="display:none;margin-top:6px;background:var(--gold-dim);color:var(--gold);border:none;padding:8px 14px;border-radius:var(--radius-sm);cursor:pointer;font-family:var(--font-body);font-size:0.78rem;font-weight:600;transition:all .2s;width:100%">+ Agregar sub-nodo</button>
+        <button id="spAddRef" style="margin-top:6px;background:var(--gold-dim);color:var(--gold);border:none;padding:8px 14px;border-radius:var(--radius-sm);cursor:pointer;font-family:var(--font-body);font-size:0.78rem;font-weight:600;transition:all .2s;width:100%">+ Agregar sub-nodo</button>
         <label>Conexiones</label>
         <div class="sp-conns" id="spConns"></div>
       </div>
@@ -1134,7 +1134,7 @@ async function renderProjectAssoc(c) {
       ${editMode ? `<span class="del" onclick="unlinkProject(${i})" style="opacity:0.6;cursor:pointer;color:var(--red);font-size:14px" title="Des-asociar">x</span>` : ''}
     </div>`
   ).join('');
-  if (editMode) html += `<button onclick="openProjectPicker()" style="margin-top:4px;background:var(--gold-dim);color:var(--gold);border:none;padding:8px 14px;border-radius:var(--radius-sm);cursor:pointer;font-family:var(--font-body);font-size:0.78rem;font-weight:600;transition:all .2s;width:100%">+ Asociar proyecto</button>`;
+  html += `<button onclick="openProjectPicker()" style="margin-top:4px;background:var(--gold-dim);color:var(--gold);border:none;padding:8px 14px;border-radius:var(--radius-sm);cursor:pointer;font-family:var(--font-body);font-size:0.78rem;font-weight:600;transition:all .2s;width:100%">+ Asociar proyecto</button>`;
   wrap.innerHTML = html;
   if (projects.length > 0) {
     taskSection.style.display = 'block';
@@ -1210,7 +1210,6 @@ async function openPanel(c) {
   editMode = false;
   document.getElementById('spEdit').style.color = '';
   document.getElementById('spEdit').style.background = '';
-  document.getElementById('spAddRef').style.display = 'none';
   // Hide config sub-panel, show main body
   document.getElementById('spConfigBody').style.display = 'none';
   document.querySelector('#sidePanel > .sp-body').style.display = '';
@@ -1230,7 +1229,6 @@ function toggleEditMode() {
   const btn = document.getElementById('spEdit');
   btn.style.color = editMode ? 'var(--gold)' : '';
   btn.style.background = editMode ? 'var(--gold-glow)' : '';
-  document.getElementById('spAddRef').style.display = editMode ? '' : 'none';
   // Re-render lists that have delete buttons
   if (BOARD_TYPE === 'ecosystem' && selectedCard) renderProjectAssoc(selectedCard);
   renderRefs();
