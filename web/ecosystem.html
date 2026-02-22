@@ -1210,6 +1210,7 @@ async function openPanel(c) {
   editMode = false;
   document.getElementById('spEdit').style.color = '';
   document.getElementById('spEdit').style.background = '';
+  setFieldsReadonly(true);
   // Hide config sub-panel, show main body
   document.getElementById('spConfigBody').style.display = 'none';
   document.querySelector('#sidePanel > .sp-body').style.display = '';
@@ -1224,11 +1225,21 @@ async function openPanel(c) {
 function closePanel() { document.getElementById('sidePanel').classList.remove('open'); selectedCard = null; editMode = false; }
 
 let editMode = false;
+
+function setFieldsReadonly(ro) {
+  ['spName','spDesc','spDetail'].forEach(id => {
+    const el = document.getElementById(id);
+    if (ro) { el.setAttribute('readonly',''); el.style.opacity='0.8'; el.style.cursor='default'; }
+    else { el.removeAttribute('readonly'); el.style.opacity=''; el.style.cursor=''; }
+  });
+}
+
 function toggleEditMode() {
   editMode = !editMode;
   const btn = document.getElementById('spEdit');
   btn.style.color = editMode ? 'var(--gold)' : '';
   btn.style.background = editMode ? 'var(--gold-glow)' : '';
+  setFieldsReadonly(!editMode);
   // Re-render lists that have delete buttons
   if (BOARD_TYPE === 'ecosystem' && selectedCard) renderProjectAssoc(selectedCard);
   renderRefs();
