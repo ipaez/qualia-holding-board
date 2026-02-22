@@ -59,14 +59,13 @@ De string[] a objetos:
   "projects": [
     {
       "id": "iq-setup",
-      "name": "IQ Setup",
-      "agent": "infraqualia"
+      "name": "IQ Setup"
     }
   ]
 }
 ```
 
-Tres campos. `agent` indica en que BACKLOG.md vive ese proyecto.
+Dos campos. El proyecto es solo una agrupacion. El `agent` en cada tarea determina a que BACKLOG.md se sincroniza.
 
 ### 1.3 Migrar estados existentes
 

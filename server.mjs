@@ -225,7 +225,7 @@ export default async function handler(req, res) {
       if (!name) return json(res, 400, { error: 'name required' });
       if (data.projects.some(p => p.name === name)) return json(res, 409, { error: 'already exists' });
       const id = body.id || name.toLowerCase().replace(/\s+/g, '-').replace(/&/g, 'and').replace(/\//g, '-');
-      data.projects.push({ id, name, agent: body.agent || 'main' });
+      data.projects.push({ id, name });
       data.projects.sort((a, b) => a.name.localeCompare(b.name));
       saveData(data);
       return json(res, 201, data.projects);
@@ -239,7 +239,6 @@ export default async function handler(req, res) {
       const body = await readBody(req);
       const oldName = proj.name;
       if (body.name !== undefined) proj.name = body.name.trim();
-      if (body.agent !== undefined) proj.agent = body.agent;
       // Update tasks referencing old name
       if (body.name && body.name !== oldName) {
         data.tasks.filter(t => t.project === oldName).forEach(t => t.project = proj.name);

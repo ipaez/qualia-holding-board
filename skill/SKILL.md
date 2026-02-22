@@ -40,14 +40,16 @@ Prioridades: `critical`, `high`, `medium`, `low`
 ### Projects
 Proyectos son el pegamento entre nodos y backlogs de agentes.
 
-- `GET /api/projects` - Lista proyectos (objetos con id, name, agent)
-- `POST /api/projects` - Crear. Body: `{name, agent}`
-- `PUT /api/projects/:id` - Editar. Body: `{name, agent}`
+- `GET /api/projects` - Lista proyectos (objetos con id, name)
+- `POST /api/projects` - Crear. Body: `{name}`
+- `PUT /api/projects/:id` - Editar. Body: `{name}`
 - `DELETE /api/projects/:id` - Eliminar
+
+El proyecto es solo una agrupacion. El campo `agent` en cada tarea determina a que BACKLOG.md se sincroniza.
 
 Ejemplo:
 ```json
-{"id": "iq-setup", "name": "IQ Setup", "agent": "infraqualia"}
+{"id": "iq-setup", "name": "IQ Setup"}
 ```
 
 ### Scope (filtrado por nodo)
@@ -123,7 +125,7 @@ Campos de cards: `title, summary, detail, source, color, tags, icon, x, y, refs`
 ```
 # 1. Crear proyecto
 POST /api/projects
-{"name": "Mi Proyecto", "agent": "infraqualia"}
+{"name": "Mi Proyecto"}
 
 # 2. Asignar a un nodo existente
 PUT /api/ecosystem/boards/root/nodes/n-infraqualia

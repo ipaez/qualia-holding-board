@@ -56,36 +56,16 @@ export function syncBoardToBacklogs(options = {}) {
   const projects = data.projects || [];
   const workspaces = discoverWorkspaces();
 
-  // Build agent -> project names map from data
-  const agentProjects = {};
-  for (const p of projects) {
-    const agent = p.agent || 'main';
-    if (!agentProjects[agent]) agentProjects[agent] = new Set();
-    agentProjects[agent].add(p.name);
-  }
-
   console.log(`Loaded ${allTasks.length} tasks, ${Object.keys(workspaces).length} workspaces, ${projects.length} projects`);
 
   for (const [agent, backlogPath] of Object.entries(workspaces)) {
     if (agent === excludeAgent) continue;
 
-    // Filter tasks for this agent
-    const agentProjectNames = agentProjects[agent] || new Set();
-    let tasks;
-
-    if (agent === 'main') {
-      // Main gets everything except done
-      tasks = allTasks.filter(t => t.status !== 'done');
-    } else {
-      tasks = allTasks.filter(t => {
-        if (t.status === 'done') return false;
-        // Tasks from this agent's projects
-        if (agentProjectNames.has(t.project)) return true;
-        // Tasks explicitly assigned to this agent
-        if (t.agent === agent) return true;
-        return false;
-      });
-    }
+    // Filter tasks: agent tag determines where each task syncs
+    const tasks = allTasks.filter(t => {
+      if (t.status === 'done') return false;
+      return t.agent === agent;
+    });
 
     // Build content grouped by project
     const header = `# Backlog - ${agent}\n\nFuente de verdad: Holding Board Dashboard.\n\n---\n`;
