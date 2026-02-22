@@ -41,7 +41,7 @@ EOF
 node start.mjs
 ```
 
-Abrir http://127.0.0.1:18795
+Abrir http://127.0.0.1:3100
 
 ## Config
 
@@ -89,7 +89,7 @@ El folder `branding/` esta en .gitignore.
 
 ```
 server.mjs            # API backend (handler exportable + standalone via start.mjs)
-start.mjs             # Launcher standalone (puerto 18795)
+start.mjs             # Launcher standalone (puerto 3100)
 sync-backlogs.mjs     # Sync board <-> BACKLOG.md
 backlog-watcher.mjs   # Watch cambios en BACKLOG.md en tiempo real
 board-data.json       # Fuente de verdad (gitignored, local por instancia)
@@ -111,7 +111,7 @@ tests/                # Tests de sync (run-sync-tests.sh)
 
 ## Variables de entorno (opcionales)
 
-- `PORT` - Puerto del servidor (default: 18795)
+- `PORT` - Puerto del servidor (default: 3100)
 - `BIND` - IP de bind (default: 127.0.0.1)
 
 ## Tests
