@@ -289,7 +289,10 @@ document.write(getNavHTML(MODE));
       <div class="sp-header">
         <h3 id="spTitle">Nodo</h3>
         <span class="sp-saved" id="spSaved">Guardado</span>
-        <button class="sp-close" id="spClose"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+        <div style="display:flex;gap:6px;align-items:center">
+          <button class="sp-close" id="spConfig" title="Configuracion"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></button>
+          <button class="sp-close" id="spClose"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+        </div>
       </div>
       <div class="sp-body">
         <label>Nombre</label>
@@ -298,14 +301,6 @@ document.write(getNavHTML(MODE));
         <textarea id="spDesc" style="min-height:60px"></textarea>
         <label>Detalle</label>
         <textarea id="spDetail" style="min-height:100px" placeholder="Detalle expandido..."></textarea>
-        <label>Origen / Fuente</label>
-        <input type="text" id="spSource" placeholder="Audio, reunion, idea propia...">
-        <label>Tags</label>
-        <div class="sp-tags-wrap" id="spTags"></div>
-        <div class="sp-tag-add">
-          <input type="text" id="spTagInput" placeholder="Nuevo tag...">
-          <button id="spTagAdd">+ Tag</button>
-        </div>
         <div id="spProjectSection">
           <label>Proyectos asociados</label>
           <div id="spProjectWrap"></div>
@@ -314,16 +309,16 @@ document.write(getNavHTML(MODE));
             <div id="spTaskList" class="sp-conns" style="max-height:200px;overflow-y:auto"></div>
           </div>
         </div>
-        <label>Links</label>
-        <div id="spLinks" class="sp-conns"></div>
-        <div class="sp-tag-add"><input type="text" id="spLinkLabel" placeholder="Label (Web, Logo...)"><input type="text" id="spLinkUrl" placeholder="URL..."><button id="spLinkAdd">+</button></div>
-        <label>Color</label>
-        <div class="color-row" id="spColors"></div>
         <label>Sub-nodos</label>
         <div class="sp-conns" id="spRefs"></div>
         <button id="spAddRef" style="margin-top:6px;background:var(--gold-dim);color:var(--gold);border:none;padding:8px 14px;border-radius:var(--radius-sm);cursor:pointer;font-family:var(--font-body);font-size:0.78rem;font-weight:600;transition:all .2s;width:100%">+ Agregar sub-nodo</button>
         <label>Conexiones</label>
         <div class="sp-conns" id="spConns"></div>
+      </div>
+      <!-- Config sub-panel (hidden by default) -->
+      <div class="sp-body" id="spConfigBody" style="display:none">
+        <label>Color</label>
+        <div class="color-row" id="spColors"></div>
       </div>
       <div class="sp-footer">
         <button class="btn-del" id="spDelete">Eliminar nodo</button>
@@ -1084,6 +1079,7 @@ function bindEvents() {
   });
   document.getElementById('btnReset').addEventListener('click', () => { centerView(); scale = 1; document.getElementById('zoomLabel').textContent = '100%'; });
   document.getElementById('spClose').addEventListener('click', closePanel);
+  document.getElementById('spConfig').addEventListener('click', toggleConfig);
   document.getElementById('boardName').addEventListener('change', renameboard);
   document.getElementById('cpClose').addEventListener('click', closeConnPanel);
   document.getElementById('cpDelete').addEventListener('click', deleteConn);
@@ -1100,12 +1096,9 @@ function bindEvents() {
   document.addEventListener('click', () => { optsMenu.classList.remove('open'); optsBtn.classList.remove('open'); });
   optsMenu.addEventListener('click', e => e.stopPropagation());
 
-  ['spName','spDesc','spDetail','spSource'].forEach(id => {
+  ['spName','spDesc','spDetail'].forEach(id => {
     document.getElementById(id).addEventListener('input', scheduleSave);
   });
-  document.getElementById('spLinkAdd').addEventListener('click', addLink);
-  document.getElementById('spTagAdd').addEventListener('click', addTag);
-  document.getElementById('spTagInput').addEventListener('keydown', e => { if (e.key === 'Enter') addTag(); });
   // Show export button in brainstorm mode
   if (BOARD_TYPE === 'brainstorm') document.getElementById('optExport').style.display = '';
 }
@@ -1126,26 +1119,7 @@ const STAGE_LABELS = {idea:'IDEA',desarrollo:'DEV',mvp:'MVP',activo:'ACTIVO',esc
 const STATUS_COLORS = {backlog:'#888',todo:'#c9a94e','in-progress':'#3498db',blocked:'#f87171',done:'#2ecc71'};
 const STATUS_LABELS = {backlog:'Backlog',todo:'Todo','in-progress':'En progreso',blocked:'Bloqueado',done:'Hecho'};
 
-function renderLinks() {
-  if(!selectedCard) return;
-  const el = document.getElementById('spLinks');
-  const links = selectedCard.links || [];
-  el.innerHTML = links.length ? links.map((l,i) =>
-    `<div class="sp-conn-item" style="border-left:3px solid var(--gold);padding-left:10px;margin:2px 0">
-      <a href="${esc(l.url)}" target="_blank" style="flex:1;color:var(--text-secondary);text-decoration:none;font-size:0.82rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"><strong style="color:var(--text-primary)">${esc(l.label)}</strong> <span style="opacity:0.5">${esc(l.url)}</span></a>
-      <span class="del" onclick="removeLink(${i})">x</span>
-    </div>`
-  ).join('') : '<span style="color:var(--text-tertiary);font-size:0.72rem">Sin links</span>';
-}
-function addLink() {
-  if(!selectedCard) return;
-  const l=document.getElementById('spLinkLabel'), u=document.getElementById('spLinkUrl');
-  if(!l.value.trim() || !u.value.trim()) return;
-  if(!selectedCard.links) selectedCard.links=[];
-  selectedCard.links.push({label:l.value.trim(),url:u.value.trim()}); l.value=''; u.value='';
-  renderLinks(); scheduleSave();
-}
-window.removeLink = function(i) { if(!selectedCard) return; selectedCard.links.splice(i,1); renderLinks(); scheduleSave(); };
+// renderLinks/addLink/removeLink removed (links field removed from UI)
 
 async function renderProjectAssoc(c) {
   const wrap = document.getElementById('spProjectWrap');
@@ -1229,10 +1203,10 @@ async function openPanel(c) {
   document.getElementById('spName').value = c.name || '';
   document.getElementById('spDesc').value = c.description || '';
   document.getElementById('spDetail').value = c.detail || '';
-  document.getElementById('spSource').value = c.source || '';
   renderColorSwatches(c.color);
-  renderTags();
-  renderLinks();
+  // Hide config sub-panel, show main body
+  document.getElementById('spConfigBody').style.display = 'none';
+  document.querySelector('#sidePanel > .sp-body').style.display = '';
   // Show/hide projects section based on mode
   document.getElementById('spProjectSection').style.display = BOARD_TYPE === 'ecosystem' ? 'block' : 'none';
   if (BOARD_TYPE === 'ecosystem') renderProjectAssoc(c);
@@ -1245,6 +1219,17 @@ async function openPanel(c) {
 
 function closePanel() { document.getElementById('sidePanel').classList.remove('open'); selectedCard = null; }
 
+function toggleConfig() {
+  const mainBody = document.querySelector('#sidePanel > .sp-body');
+  const configBody = document.getElementById('spConfigBody');
+  const btn = document.getElementById('spConfig');
+  const isConfig = configBody.style.display !== 'none';
+  mainBody.style.display = isConfig ? '' : 'none';
+  configBody.style.display = isConfig ? 'none' : '';
+  btn.style.color = isConfig ? '' : 'var(--gold)';
+  btn.style.background = isConfig ? '' : 'var(--gold-glow)';
+}
+
 function renderColorSwatches(active) {
   document.getElementById('spColors').innerHTML = COLORS.map(c =>
     `<div class="color-swatch ${c===active?'active':''}" style="background:${c}" onclick="pickColor('${c}')"></div>`
@@ -1252,21 +1237,7 @@ function renderColorSwatches(active) {
 }
 window.pickColor = function(c) { if (!selectedCard) return; selectedCard.color = c; renderColorSwatches(c); scheduleSave(); };
 
-function renderTags() {
-  if (!selectedCard) return;
-  document.getElementById('spTags').innerHTML = (selectedCard.tags||[]).map((t,i) =>
-    `<span class="sp-tag">${esc(t)}<button onclick="removeTag(${i})">x</button></span>`
-  ).join('');
-}
-function addTag() {
-  if (!selectedCard) return;
-  const input = document.getElementById('spTagInput'), val = input.value.trim();
-  if (!val) return;
-  if (!selectedCard.tags) selectedCard.tags = [];
-  selectedCard.tags.push(val); input.value = '';
-  renderTags(); scheduleSave();
-}
-window.removeTag = function(i) { if (!selectedCard) return; selectedCard.tags.splice(i, 1); renderTags(); scheduleSave(); };
+// Tags/Links/Source removed from UI (data preserved in backend)
 
 function renderRefs() {
   if (!selectedCard) return;
@@ -1330,11 +1301,8 @@ async function savePanel() {
     name: document.getElementById('spName').value,
     description: document.getElementById('spDesc').value,
     detail: document.getElementById('spDetail').value,
-    source: document.getElementById('spSource').value,
     color: selectedCard.color,
-    tags: selectedCard.tags || [],
     projects: selectedCard.projects || [],
-    links: selectedCard.links || [],
   };
   Object.assign(selectedCard, body);
   document.getElementById('spTitle').textContent = body.name || 'Nodo';
