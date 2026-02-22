@@ -131,7 +131,7 @@ T04_ID=$(curl -sf "$BASE/api/tasks" | python3 -c "import sys,json; ts=[t for t i
 echo ""
 echo "=== T05: Agent marks task done ==="
 T05_RESP=$(curl -sf -X POST "$BASE/api/tasks" -H 'Content-Type: application/json' \
-  -d '{"title":"TEST-MARKDONE-T05","agent":"holding-board","project":"IQ Herramientas","status":"idea"}')
+  -d '{"title":"TEST-MARKDONE-T05","agent":"holding-board","project":"IQ Herramientas","status":"backlog"}')
 T05_ID=$(echo "$T05_RESP" | python3 -c "import sys,json; print(json.load(sys.stdin)['id'])")
 CLEANUP_IDS+=("$T05_ID")
 sleep 5
@@ -149,14 +149,15 @@ for old_id in $(curl -sf "$BASE/api/tasks" | python3 -c "import sys,json; [print
 done
 sleep 3
 T06_RESP=$(curl -sf -X POST "$BASE/api/tasks" -H 'Content-Type: application/json' \
-  -d '{"title":"TEST-CROSSAGENT-T06","agent":"main","project":"Contenido & Distribucion","status":"idea"}')
+  -d '{"title":"TEST-CROSSAGENT-T06","agent":"main","project":"Contenido & Distribucion","status":"backlog"}')
 T06_ID=$(echo "$T06_RESP" | python3 -c "import sys,json; print(json.load(sys.stdin)['id'])")
 CLEANUP_IDS+=("$T06_ID")
 sleep 5
-T06_PE=$(grep -c 'TEST-CROSSAGENT-T06' "$HOME_DIR/.openclaw/workspace-prisma-engine/BACKLOG.md" 2>/dev/null || echo 0)
-T06_PA=$(grep -c 'TEST-CROSSAGENT-T06' "$HOME_DIR/.openclaw/workspace-prisma-academy/BACKLOG.md" 2>/dev/null || echo 0)
-assert_eq "$T06_PE" "1" "T06: Task in prisma-engine"
-assert_eq "$T06_PA" "1" "T06: Task in prisma-academy"
+# v2: task goes ONLY to the agent specified in task.agent (main), not to other agents
+T06_MAIN=$(grep -c 'TEST-CROSSAGENT-T06' "$HOME_DIR/.openclaw/workspace/BACKLOG.md" 2>/dev/null || echo 0)
+T06_PE=$(grep -c 'TEST-CROSSAGENT-T06' "$HOME_DIR/.openclaw/workspace-prisma-engine/BACKLOG.md" 2>/dev/null | tr -d '[:space:]' || echo 0)
+assert_eq "$T06_MAIN" "1" "T06: Task in main (assigned agent)"
+assert_eq "$T06_PE" "0" "T06: Task NOT in prisma-engine (not assigned)"
 
 echo ""
 echo "=== T07: ID preservation on rewrite ==="
