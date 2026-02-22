@@ -275,8 +275,9 @@ function getNavHTML(active) {
       { id: 'done', label: 'Completadas', href: 'done' },
     ]},
   ];
+  const sidebarCollapsed = localStorage.getItem('qb_sidebar') === 'collapsed';
   return `
-<aside class="sidebar" id="qb-sidebar">
+<aside class="sidebar${sidebarCollapsed ? ' collapsed' : ''}" id="qb-sidebar">
   <div class="sidebar-logo" onclick="toggleSidebar()">
     <svg class="logo-svg" width="32" height="32" viewBox="0 0 32 32" fill="none">
       <polygon points="16,2 28,9 28,23 16,30 4,23 4,9" fill="none" stroke="var(--gold)" stroke-width="2"/>
